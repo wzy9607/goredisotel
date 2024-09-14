@@ -54,9 +54,15 @@ func newConfig(opts ...baseOption) *config {
 		dbSystem: "redis",
 		attrs:    []attribute.KeyValue{},
 
-		tp:            otel.GetTracerProvider(),
-		mp:            otel.GetMeterProvider(),
+		tp:     otel.GetTracerProvider(),
+		tracer: nil,
+
 		dbStmtEnabled: true,
+
+		mp:    otel.GetMeterProvider(),
+		meter: nil,
+
+		poolName: "",
 	}
 
 	for _, opt := range opts {
@@ -81,7 +87,7 @@ func WithAttributes(attrs ...attribute.KeyValue) Option {
 	})
 }
 
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 type TracingOption interface {
 	baseOption
@@ -113,7 +119,7 @@ func WithDBStatement(on bool) TracingOption {
 	})
 }
 
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 type MetricsOption interface {
 	baseOption

@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/wzy9607/goredisotel/internal/rediscmd"
 )
@@ -107,7 +108,7 @@ func (th *tracingHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		fn, file, line := funcFileLine("github.com/redis/go-redis")
 
-		attrs := make([]attribute.KeyValue, 0, 8)
+		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		attrs = append(attrs,
 			semconv.CodeFunction(fn),
 			semconv.CodeFilepath(file),
@@ -139,7 +140,7 @@ func (th *tracingHook) ProcessPipelineHook(
 	return func(ctx context.Context, cmds []redis.Cmder) error {
 		fn, file, line := funcFileLine("github.com/redis/go-redis")
 
-		attrs := make([]attribute.KeyValue, 0, 8)
+		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		attrs = append(attrs,
 			semconv.CodeFunction(fn),
 			semconv.CodeFilepath(file),
@@ -167,7 +168,7 @@ func (th *tracingHook) ProcessPipelineHook(
 }
 
 func recordError(span trace.Span, err error) {
-	if err != redis.Nil {
+	if err != redis.Nil { //nolint:errorlint // ignore
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
@@ -180,30 +181,28 @@ func formatDBConnString(network, addr string) string {
 	return fmt.Sprintf("%s://%s", network, addr)
 }
 
-func funcFileLine(pkg string) (string, string, int) {
+func funcFileLine(pkg string) (fnName, file string, line int) {
 	const depth = 16
 	var pcs [depth]uintptr
-	n := runtime.Callers(3, pcs[:])
+	n := runtime.Callers(3, pcs[:]) //nolint:mnd // ignore
 	ff := runtime.CallersFrames(pcs[:n])
 
-	var fn, file string
-	var line int
 	for {
 		f, ok := ff.Next()
 		if !ok {
 			break
 		}
-		fn, file, line = f.Function, f.File, f.Line
-		if !strings.Contains(fn, pkg) {
+		fnName, file, line = f.Function, f.File, f.Line
+		if !strings.Contains(fnName, pkg) {
 			break
 		}
 	}
 
-	if ind := strings.LastIndexByte(fn, '/'); ind != -1 {
-		fn = fn[ind+1:]
+	if ind := strings.LastIndexByte(fnName, '/'); ind != -1 {
+		fnName = fnName[ind+1:]
 	}
 
-	return fn, file, line
+	return fnName, file, line
 }
 
 // Database span attributes semantic conventions recommended server address and port

@@ -8,6 +8,7 @@ import (
 )
 
 func TestGinkgo(t *testing.T) {
+	t.Parallel()
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "redisext")
 }

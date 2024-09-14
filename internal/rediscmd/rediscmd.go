@@ -11,11 +11,14 @@ import (
 )
 
 func CmdString(cmd redis.Cmder) string {
-	b := make([]byte, 0, 32)
+	b := make([]byte, 0, 32) //nolint:mnd // vendored
 	b = AppendCmd(b, cmd)
 	return String(b)
 }
 
+// CmdsString returns a summary of the commands in cmds.
+//
+//nolint:varnamelen,gocritic,revive // vendored
 func CmdsString(cmds []redis.Cmder) (string, string) {
 	const numCmdLimit = 100
 	const numNameLimit = 10
@@ -23,7 +26,7 @@ func CmdsString(cmds []redis.Cmder) (string, string) {
 	seen := make(map[string]struct{}, numNameLimit)
 	unqNames := make([]string, 0, numNameLimit)
 
-	b := make([]byte, 0, 32*len(cmds))
+	b := make([]byte, 0, 32*len(cmds)) //nolint:mnd // vendored
 
 	for i, cmd := range cmds {
 		if i > numCmdLimit {
@@ -50,6 +53,9 @@ func CmdsString(cmds []redis.Cmder) (string, string) {
 	return summary, String(b)
 }
 
+// AppendCmd appends the string representation of cmd to b.
+//
+//nolint:varnamelen // vendored
 func AppendCmd(b []byte, cmd redis.Cmder) []byte {
 	const numArgLimit = 32
 
@@ -71,7 +77,8 @@ func AppendCmd(b []byte, cmd redis.Cmder) []byte {
 	return b
 }
 
-func appendArg(b []byte, v interface{}) []byte {
+//nolint:cyclop,varnamelen // vendored
+func appendArg(b []byte, v any) []byte {
 	const argLenLimit = 64
 
 	switch v := v.(type) {
@@ -123,7 +130,7 @@ func appendArg(b []byte, v interface{}) []byte {
 	}
 }
 
-func appendUTF8String(dst []byte, src []byte) []byte {
+func appendUTF8String(dst, src []byte) []byte {
 	if isSimple(src) {
 		dst = append(dst, src...)
 		return dst

@@ -15,7 +15,9 @@ import (
 
 // InstrumentMetrics starts reporting OpenTelemetry Metrics.
 //
-// Based on https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/semantic_conventions/database-metrics.md
+// Based on https://opentelemetry.io/docs/specs/semconv/database/.
+//
+//nolint:cyclop // ignore
 func InstrumentMetrics(rdb redis.UniversalClient, opts ...MetricsOption) error {
 	baseOpts := make([]baseOption, len(opts))
 	for i, opt := range opts {
@@ -84,8 +86,8 @@ func InstrumentMetrics(rdb redis.UniversalClient, opts ...MetricsOption) error {
 
 func reportPoolStats(rdb *redis.Client, conf *config) error {
 	labels := conf.attrs
-	idleAttrs := append(labels, attribute.String("state", "idle"))
-	usedAttrs := append(labels, attribute.String("state", "used"))
+	idleAttrs := append(labels, attribute.String("state", "idle")) //nolint:gocritic // ignore
+	usedAttrs := append(labels, attribute.String("state", "used")) //nolint:gocritic // ignore
 
 	idleMax, err := conf.meter.Int64ObservableUpDownCounter(
 		"db.client.connections.idle.max",
@@ -113,7 +115,7 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 
 	usage, err := conf.meter.Int64ObservableUpDownCounter(
 		"db.client.connections.usage",
-		metric.WithDescription("The number of connections that are currently in state described by the state attribute"),
+		metric.WithDescription("The number of connections that are currently in state described by the state attribute"), //nolint:lll // ignore
 	)
 	if err != nil {
 		return err
@@ -121,7 +123,7 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 
 	timeouts, err := conf.meter.Int64ObservableUpDownCounter(
 		"db.client.connections.timeouts",
-		metric.WithDescription("The number of connection timeouts that have occurred trying to obtain a connection from the pool"),
+		metric.WithDescription("The number of connection timeouts that have occurred trying to obtain a connection from the pool"), //nolint:lll // ignore
 	)
 	if err != nil {
 		return err
@@ -214,8 +216,7 @@ func (mh *metricsHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 
 		attrs := make([]attribute.KeyValue, 0, len(mh.attrs)+2)
 		attrs = append(attrs, mh.attrs...)
-		attrs = append(attrs, attribute.String("type", "command"))
-		attrs = append(attrs, statusAttr(err))
+		attrs = append(attrs, attribute.String("type", "command"), statusAttr(err))
 
 		mh.useTime.Record(ctx, milliseconds(dur), metric.WithAttributes(attrs...))
 
@@ -235,8 +236,7 @@ func (mh *metricsHook) ProcessPipelineHook(
 
 		attrs := make([]attribute.KeyValue, 0, len(mh.attrs)+2)
 		attrs = append(attrs, mh.attrs...)
-		attrs = append(attrs, attribute.String("type", "pipeline"))
-		attrs = append(attrs, statusAttr(err))
+		attrs = append(attrs, attribute.String("type", "pipeline"), statusAttr(err))
 
 		mh.useTime.Record(ctx, milliseconds(dur), metric.WithAttributes(attrs...))
 
