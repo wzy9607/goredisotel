@@ -1,18 +1,18 @@
 package redisotel
 
 import (
+	"slices"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
 type config struct {
 	// Common options.
-
-	dbSystem string
-	attrs    []attribute.KeyValue
+	attrs []attribute.KeyValue
 
 	// Tracing options.
 
@@ -51,8 +51,7 @@ func (fn option) metrics() {}
 
 func newConfig(opts ...baseOption) *config {
 	conf := &config{
-		dbSystem: "redis",
-		attrs:    []attribute.KeyValue{},
+		attrs: []attribute.KeyValue{},
 
 		tp:     otel.GetTracerProvider(),
 		tracer: nil,
@@ -69,14 +68,15 @@ func newConfig(opts ...baseOption) *config {
 		opt.apply(conf)
 	}
 
-	conf.attrs = append(conf.attrs, semconv.DBSystemKey.String(conf.dbSystem))
+	conf.attrs = append(conf.attrs, semconv.DBSystemRedis)
 
 	return conf
 }
 
-func WithDBSystem(dbSystem string) Option {
+// WithPoolName specifies the pool name to use in the attributes.
+func WithPoolName(poolName string) Option {
 	return option(func(conf *config) {
-		conf.dbSystem = dbSystem
+		conf.poolName = poolName
 	})
 }
 
@@ -141,4 +141,8 @@ func WithMeterProvider(mp metric.MeterProvider) MetricsOption {
 	return metricsOption(func(conf *config) {
 		conf.mp = mp
 	})
+}
+
+func (conf *config) Attributes() []attribute.KeyValue {
+	return slices.Clone(conf.attrs)
 }

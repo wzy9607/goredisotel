@@ -6,7 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/redis/go-redis/v9"
@@ -27,7 +27,7 @@ func TestNewWithTracerProvider(t *testing.T) {
 		return otel.GetTracerProvider()
 	})
 
-	_ = newTracingHook("redis-hook", WithTracerProvider(tp.TracerProvider("redis-test")))
+	_ = newTracingHook(&redis.Options{DB: 1}, WithTracerProvider(tp.TracerProvider("redis-test")))
 
 	if !invoked {
 		t.Fatalf("did not call custom TraceProvider")
@@ -38,7 +38,7 @@ func TestWithDBStatement(t *testing.T) {
 	t.Parallel()
 	provider := sdktrace.NewTracerProvider()
 	hook := newTracingHook(
-		"",
+		nil,
 		WithTracerProvider(provider),
 		WithDBStatement(false),
 	)
@@ -49,7 +49,7 @@ func TestWithDBStatement(t *testing.T) {
 	processHook := hook.ProcessHook(func(ctx context.Context, cmd redis.Cmder) error {
 		attrs := trace.SpanFromContext(ctx).(sdktrace.ReadOnlySpan).Attributes()
 		for _, attr := range attrs {
-			if attr.Key == semconv.DBStatementKey {
+			if attr.Key == semconv.DBQueryTextKey {
 				t.Fatal("Attribute with db statement should not exist")
 			}
 		}

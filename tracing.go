@@ -2,15 +2,15 @@ package redisotel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/redis/go-redis/v9"
@@ -25,29 +25,20 @@ const (
 func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
 	switch rdb := rdb.(type) {
 	case *redis.Client:
-		opt := rdb.Options()
-		connString := formatDBConnString(opt.Network, opt.Addr)
-		opts = addServerAttributes(opts, opt.Addr)
-		rdb.AddHook(newTracingHook(connString, opts...))
+		rdb.AddHook(newTracingHook(rdb.Options(), opts...))
 		return nil
 	case *redis.ClusterClient:
-		rdb.AddHook(newTracingHook("", opts...))
+		rdb.AddHook(newTracingHook(nil, opts...))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			opt := rdb.Options()
-			opts = addServerAttributes(opts, opt.Addr)
-			connString := formatDBConnString(opt.Network, opt.Addr)
-			rdb.AddHook(newTracingHook(connString, opts...))
+			rdb.AddHook(newTracingHook(rdb.Options(), opts...))
 		})
 		return nil
 	case *redis.Ring:
-		rdb.AddHook(newTracingHook("", opts...))
+		rdb.AddHook(newTracingHook(nil, opts...))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			opt := rdb.Options()
-			opts = addServerAttributes(opts, opt.Addr)
-			connString := formatDBConnString(opt.Network, opt.Addr)
-			rdb.AddHook(newTracingHook(connString, opts...))
+			rdb.AddHook(newTracingHook(rdb.Options(), opts...))
 		})
 		return nil
 	default:
@@ -58,12 +49,14 @@ func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
 type tracingHook struct {
 	conf *config
 
+	operationAttrs []attribute.KeyValue
+
 	spanOpts []trace.SpanStartOption
 }
 
 var _ redis.Hook = (*tracingHook)(nil)
 
-func newTracingHook(connString string, opts ...TracingOption) *tracingHook {
+func newTracingHook(rdsOpt *redis.Options, opts ...TracingOption) *tracingHook {
 	baseOpts := make([]baseOption, len(opts))
 	for i, opt := range opts {
 		baseOpts[i] = opt
@@ -76,12 +69,12 @@ func newTracingHook(connString string, opts ...TracingOption) *tracingHook {
 			trace.WithInstrumentationVersion("semver:"+redis.Version()),
 		)
 	}
-	if connString != "" {
-		conf.attrs = append(conf.attrs, semconv.DBConnectionString(connString))
-	}
 
+	operationAttrs := commonOperationAttrs(conf, rdsOpt)
 	return &tracingHook{
 		conf: conf,
+
+		operationAttrs: operationAttrs.ToSlice(),
 
 		spanOpts: []trace.SpanStartOption{
 			trace.WithSpanKind(trace.SpanKindClient),
@@ -113,15 +106,16 @@ func (th *tracingHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 			semconv.CodeFunction(fn),
 			semconv.CodeFilepath(file),
 			semconv.CodeLineNumber(line),
+			semconv.DBOperationName(cmd.FullName()),
 		)
 
 		if th.conf.dbStmtEnabled {
 			cmdString := rediscmd.CmdString(cmd)
-			attrs = append(attrs, semconv.DBStatement(cmdString))
+			attrs = append(attrs, semconv.DBQueryText(cmdString))
 		}
 
 		opts := th.spanOpts
-		opts = append(opts, trace.WithAttributes(attrs...))
+		opts = append(opts, trace.WithAttributes(th.operationAttrs...), trace.WithAttributes(attrs...))
 
 		ctx, span := th.conf.tracer.Start(ctx, cmd.FullName(), opts...)
 		defer span.End()
@@ -145,16 +139,17 @@ func (th *tracingHook) ProcessPipelineHook(
 			semconv.CodeFunction(fn),
 			semconv.CodeFilepath(file),
 			semconv.CodeLineNumber(line),
+			semconv.DBOperationName("pipeline"),
 			attribute.Int("db.redis.num_cmd", len(cmds)),
 		)
 
 		summary, cmdsString := rediscmd.CmdsString(cmds)
 		if th.conf.dbStmtEnabled {
-			attrs = append(attrs, semconv.DBStatement(cmdsString))
+			attrs = append(attrs, semconv.DBQueryText(cmdsString))
 		}
 
 		opts := th.spanOpts
-		opts = append(opts, trace.WithAttributes(attrs...))
+		opts = append(opts, trace.WithAttributes(th.operationAttrs...), trace.WithAttributes(attrs...))
 
 		ctx, span := th.conf.tracer.Start(ctx, "redis.pipeline "+summary, opts...)
 		defer span.End()
@@ -168,17 +163,11 @@ func (th *tracingHook) ProcessPipelineHook(
 }
 
 func recordError(span trace.Span, err error) {
-	if err != redis.Nil { //nolint:errorlint // ignore
+	span.SetAttributes(errorKindAttr(err))
+	if !errors.Is(err, redis.Nil) {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	}
-}
-
-func formatDBConnString(network, addr string) string {
-	if network == "tcp" {
-		network = "redis"
-	}
-	return fmt.Sprintf("%s://%s", network, addr)
 }
 
 func funcFileLine(pkg string) (fnName, file string, line int) {
@@ -203,29 +192,4 @@ func funcFileLine(pkg string) (fnName, file string, line int) {
 	}
 
 	return fnName, file, line
-}
-
-// Database span attributes semantic conventions recommended server address and port
-// https://opentelemetry.io/docs/specs/semconv/database/database-spans/#connection-level-attributes
-func addServerAttributes(opts []TracingOption, addr string) []TracingOption {
-	host, portString, err := net.SplitHostPort(addr)
-	if err != nil {
-		return opts
-	}
-
-	opts = append(opts, WithAttributes(
-		semconv.ServerAddress(host),
-	))
-
-	// Parse the port string to an integer
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return opts
-	}
-
-	opts = append(opts, WithAttributes(
-		semconv.ServerPort(port),
-	))
-
-	return opts
 }
