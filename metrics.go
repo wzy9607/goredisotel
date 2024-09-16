@@ -67,53 +67,13 @@ func InstrumentMetrics(rdb redis.UniversalClient, opts ...MetricsOption) error {
 }
 
 // reportPoolStats reports connection pool stats.
-// todo db.client.connection.pending_requests, db.client.connection.wait_time
+// todo connPendingRequests and connWaitTime aren't reported.
 func reportPoolStats(rdb *redis.Client, conf *config) error {
 	poolAttrs := commonPoolAttrs(conf, rdb.Options())
 	idleAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionsStateIdle)...)
 	usedAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionsStateUsed)...)
 
-	idleMax, err := conf.meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionIdleMaxName,
-		metric.WithDescription(semconv.DBClientConnectionIdleMaxDescription),
-		metric.WithUnit(semconv.DBClientConnectionIdleMaxUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	idleMin, err := conf.meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionIdleMinName,
-		metric.WithDescription(semconv.DBClientConnectionIdleMinDescription),
-		metric.WithUnit(semconv.DBClientConnectionIdleMinUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	connMax, err := conf.meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionMaxName,
-		metric.WithDescription(semconv.DBClientConnectionMaxDescription),
-		metric.WithUnit(semconv.DBClientConnectionMaxUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	connCount, err := conf.meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionCountName,
-		metric.WithDescription(semconv.DBClientConnectionCountDescription),
-		metric.WithUnit(semconv.DBClientConnectionCountUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	timeouts, err := conf.meter.Int64ObservableCounter(
-		semconv.DBClientConnectionTimeoutsName,
-		metric.WithDescription(semconv.DBClientConnectionTimeoutsDescription),
-		metric.WithUnit(semconv.DBClientConnectionTimeoutsUnit),
-	)
+	instruments, err := newPoolStatsInstruments(conf.meter)
 	if err != nil {
 		return err
 	}
@@ -123,60 +83,39 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 		func(ctx context.Context, o metric.Observer) error {
 			stats := rdb.PoolStats()
 
-			o.ObserveInt64(idleMax, int64(redisConf.MaxIdleConns), metric.WithAttributeSet(poolAttrs))
-			o.ObserveInt64(idleMin, int64(redisConf.MinIdleConns), metric.WithAttributeSet(poolAttrs))
-			o.ObserveInt64(connMax, int64(redisConf.PoolSize), metric.WithAttributeSet(poolAttrs))
-
-			o.ObserveInt64(connCount, int64(stats.IdleConns), metric.WithAttributeSet(idleAttrs))
-			o.ObserveInt64(connCount, int64(stats.TotalConns-stats.IdleConns), metric.WithAttributeSet(usedAttrs))
-
-			o.ObserveInt64(timeouts, int64(stats.Timeouts), metric.WithAttributeSet(poolAttrs))
+			o.ObserveInt64(instruments.connCount, int64(stats.IdleConns),
+				metric.WithAttributeSet(idleAttrs))
+			o.ObserveInt64(instruments.connCount, int64(stats.TotalConns-stats.IdleConns),
+				metric.WithAttributeSet(usedAttrs))
+			o.ObserveInt64(instruments.connIdleMax, int64(redisConf.MaxIdleConns),
+				metric.WithAttributeSet(poolAttrs))
+			o.ObserveInt64(instruments.connIdleMin, int64(redisConf.MinIdleConns),
+				metric.WithAttributeSet(poolAttrs))
+			o.ObserveInt64(instruments.connMax, int64(redisConf.PoolSize),
+				metric.WithAttributeSet(poolAttrs))
+			o.ObserveInt64(instruments.connTimeouts, int64(stats.Timeouts),
+				metric.WithAttributeSet(poolAttrs))
 			return nil
 		},
-		connCount,
-		idleMax,
-		idleMin,
-		connMax,
-		timeouts,
+		instruments.connCount,
+		instruments.connIdleMax,
+		instruments.connIdleMin,
+		instruments.connMax,
+		instruments.connTimeouts,
 	)
 
 	return err
 }
 
 func addMetricsHook(rdb *redis.Client, conf *config) error {
-	oprDuration, err := conf.meter.Float64Histogram(
-		semconv.DBClientOperationDurationName,
-		metric.WithDescription(semconv.DBClientOperationDurationDescription),
-		metric.WithUnit(semconv.DBClientOperationDurationUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	createTime, err := conf.meter.Float64Histogram(
-		semconv.DBClientConnectionCreateTimeName,
-		metric.WithDescription(semconv.DBClientConnectionCreateTimeDescription),
-		metric.WithUnit(semconv.DBClientConnectionCreateTimeUnit),
-	)
-	if err != nil {
-		return err
-	}
-
-	useTime, err := conf.meter.Float64Histogram(
-		semconv.DBClientConnectionUseTimeName,
-		metric.WithDescription(semconv.DBClientConnectionUseTimeDescription),
-		metric.WithUnit(semconv.DBClientConnectionUseTimeUnit),
-	)
+	instruments, err := newHookInstruments(conf.meter)
 	if err != nil {
 		return err
 	}
 
 	opt := rdb.Options()
 	rdb.AddHook(&metricsHook{
-		oprDuration: oprDuration,
-
-		createTime: createTime,
-		useTime:    useTime,
+		instruments: instruments,
 
 		dbNamespace: strconv.Itoa(opt.DB),
 
@@ -188,10 +127,7 @@ func addMetricsHook(rdb *redis.Client, conf *config) error {
 }
 
 type metricsHook struct {
-	oprDuration metric.Float64Histogram
-
-	createTime metric.Float64Histogram
-	useTime    metric.Float64Histogram
+	instruments *hookInstruments
 
 	dbNamespace string
 
@@ -218,7 +154,7 @@ func (mh *metricsHook) DialHook(hook redis.DialHook) redis.DialHook {
 			statusAttr(err),
 		)
 
-		mh.createTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.baseAttrs), metric.WithAttributeSet(attrs))
+		mh.instruments.createTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.baseAttrs), metric.WithAttributeSet(attrs))
 		return conn, err
 	}
 }
@@ -238,10 +174,10 @@ func (mh *metricsHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 
 		dur := time.Since(start)
 
-		mh.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.operationAttrs),
+		mh.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.operationAttrs),
 			metric.WithAttributeSet(mh.operationAttributes(cmd.FullName(), err)))
 
-		mh.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.poolAttrs),
+		mh.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.poolAttrs),
 			metric.WithAttributeSet(attribute.NewSet(statusAttr(err))))
 
 		return err
@@ -258,10 +194,10 @@ func (mh *metricsHook) ProcessPipelineHook(
 
 		dur := time.Since(start)
 
-		mh.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.operationAttrs),
+		mh.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.operationAttrs),
 			metric.WithAttributeSet(mh.operationAttributes("pipeline", err)))
 
-		mh.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.poolAttrs),
+		mh.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.poolAttrs),
 			metric.WithAttributeSet(attribute.NewSet(statusAttr(err))))
 
 		return err
