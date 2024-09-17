@@ -80,20 +80,20 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 
 	redisConf := rdb.Options()
 	_, err = conf.meter.RegisterCallback(
-		func(ctx context.Context, o metric.Observer) error {
+		func(ctx context.Context, observer metric.Observer) error {
 			stats := rdb.PoolStats()
 
-			o.ObserveInt64(instruments.connCount, int64(stats.IdleConns),
+			observer.ObserveInt64(instruments.connCount, int64(stats.IdleConns),
 				metric.WithAttributeSet(idleAttrs))
-			o.ObserveInt64(instruments.connCount, int64(stats.TotalConns-stats.IdleConns),
+			observer.ObserveInt64(instruments.connCount, int64(stats.TotalConns-stats.IdleConns),
 				metric.WithAttributeSet(usedAttrs))
-			o.ObserveInt64(instruments.connIdleMax, int64(redisConf.MaxIdleConns),
+			observer.ObserveInt64(instruments.connIdleMax, int64(redisConf.MaxIdleConns),
 				metric.WithAttributeSet(poolAttrs))
-			o.ObserveInt64(instruments.connIdleMin, int64(redisConf.MinIdleConns),
+			observer.ObserveInt64(instruments.connIdleMin, int64(redisConf.MinIdleConns),
 				metric.WithAttributeSet(poolAttrs))
-			o.ObserveInt64(instruments.connMax, int64(redisConf.PoolSize),
+			observer.ObserveInt64(instruments.connMax, int64(redisConf.PoolSize),
 				metric.WithAttributeSet(poolAttrs))
-			o.ObserveInt64(instruments.connTimeouts, int64(stats.Timeouts),
+			observer.ObserveInt64(instruments.connTimeouts, int64(stats.Timeouts),
 				metric.WithAttributeSet(poolAttrs))
 			return nil
 		},
@@ -154,7 +154,8 @@ func (mh *metricsHook) DialHook(hook redis.DialHook) redis.DialHook {
 			statusAttr(err),
 		)
 
-		mh.instruments.createTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(mh.baseAttrs), metric.WithAttributeSet(attrs))
+		mh.instruments.createTime.Record(ctx, dur.Seconds(),
+			metric.WithAttributeSet(mh.baseAttrs), metric.WithAttributeSet(attrs))
 		return conn, err
 	}
 }

@@ -26,6 +26,16 @@ type hookInstruments struct {
 	useTime    metric.Float64Histogram
 }
 
+var buckets = []float64{.001, .005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10}
+
+// SetBuckets sets the buckets used for OpenTelemetry metrics.
+// The default buckets of .001, .005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+// are used if SetBuckets is not called.
+// The default buckets are finer than the one in the Semantic Conventions.
+func SetBuckets(b []float64) {
+	buckets = b
+}
+
 func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) {
 	connCount, err := meter.Int64ObservableUpDownCounter(
 		semconv.DBClientConnectionCountName,
@@ -85,6 +95,7 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 		semconv.DBClientConnectionWaitTimeName,
 		metric.WithDescription(semconv.DBClientConnectionWaitTimeDescription),
 		metric.WithUnit(semconv.DBClientConnectionWaitTimeUnit),
+		metric.WithExplicitBucketBoundaries(buckets...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionWaitTimeName, err)
@@ -106,6 +117,7 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		semconv.DBClientOperationDurationName,
 		metric.WithDescription(semconv.DBClientOperationDurationDescription),
 		metric.WithUnit(semconv.DBClientOperationDurationUnit),
+		metric.WithExplicitBucketBoundaries(buckets...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientOperationDurationName, err)
@@ -115,6 +127,7 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		semconv.DBClientConnectionCreateTimeName,
 		metric.WithDescription(semconv.DBClientConnectionCreateTimeDescription),
 		metric.WithUnit(semconv.DBClientConnectionCreateTimeUnit),
+		metric.WithExplicitBucketBoundaries(buckets...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionCreateTimeName, err)
@@ -124,6 +137,7 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		semconv.DBClientConnectionUseTimeName,
 		metric.WithDescription(semconv.DBClientConnectionUseTimeDescription),
 		metric.WithUnit(semconv.DBClientConnectionUseTimeUnit),
+		metric.WithExplicitBucketBoundaries(buckets...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionUseTimeName, err)
