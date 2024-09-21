@@ -18,7 +18,17 @@ import (
 	"github.com/wzy9607/goredisotel/internal/rediscmd"
 )
 
-func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
+type clientHook struct {
+	conf *config
+
+	operationAttrs []attribute.KeyValue
+
+	spanOpts []trace.SpanStartOption
+}
+
+var _ redis.Hook = (*clientHook)(nil)
+
+func InstrumentClientWithHooks(rdb redis.UniversalClient, opts ...TracingOption) error {
 	baseOpts := make([]baseOption, len(opts))
 	for i, opt := range opts {
 		baseOpts[i] = opt
@@ -27,20 +37,20 @@ func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
 
 	switch rdb := rdb.(type) {
 	case *redis.Client:
-		rdb.AddHook(newTracingHook(rdb.Options(), conf))
+		rdb.AddHook(newClientHook(rdb.Options(), conf))
 		return nil
 	case *redis.ClusterClient:
-		rdb.AddHook(newTracingHook(nil, conf))
+		rdb.AddHook(newClientHook(nil, conf))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newTracingHook(rdb.Options(), conf))
+			rdb.AddHook(newClientHook(rdb.Options(), conf))
 		})
 		return nil
 	case *redis.Ring:
-		rdb.AddHook(newTracingHook(nil, conf))
+		rdb.AddHook(newClientHook(nil, conf))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newTracingHook(rdb.Options(), conf))
+			rdb.AddHook(newClientHook(rdb.Options(), conf))
 		})
 		return nil
 	default:
@@ -48,19 +58,9 @@ func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
 	}
 }
 
-type tracingHook struct {
-	conf *config
-
-	operationAttrs []attribute.KeyValue
-
-	spanOpts []trace.SpanStartOption
-}
-
-var _ redis.Hook = (*tracingHook)(nil)
-
-func newTracingHook(rdsOpt *redis.Options, conf *config) *tracingHook {
+func newClientHook(rdsOpt *redis.Options, conf *config) *clientHook {
 	operationAttrs := commonOperationAttrs(conf, rdsOpt)
-	return &tracingHook{
+	return &clientHook{
 		conf: conf,
 
 		operationAttrs: operationAttrs.ToSlice(),
@@ -72,7 +72,7 @@ func newTracingHook(rdsOpt *redis.Options, conf *config) *tracingHook {
 	}
 }
 
-func (th *tracingHook) DialHook(hook redis.DialHook) redis.DialHook {
+func (th *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		ctx, span := th.conf.tracer.Start(ctx, "redis.dial", th.spanOpts...)
 		defer span.End()
@@ -86,7 +86,7 @@ func (th *tracingHook) DialHook(hook redis.DialHook) redis.DialHook {
 	}
 }
 
-func (th *tracingHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
+func (th *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		fn, file, line := funcFileLine("github.com/redis/go-redis")
 
@@ -117,7 +117,7 @@ func (th *tracingHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	}
 }
 
-func (th *tracingHook) ProcessPipelineHook(
+func (th *clientHook) ProcessPipelineHook(
 	hook redis.ProcessPipelineHook,
 ) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {

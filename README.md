@@ -15,20 +15,25 @@ Tracing is enabled by adding a hook:
 
 ```go
 import (
-    "github.com/redis/go-redis/v9"
-    "github.com/wzy9607/goredisotel"
+"github.com/redis/go-redis/v9"
+"github.com/wzy9607/goredisotel"
 )
 
 rdb := rdb.NewClient(&rdb.Options{...})
 
 // Enable tracing instrumentation.
-if err := goredisotel.InstrumentTracing(rdb); err != nil {
-    panic(err)
+if err := goredisotel.InstrumentClientWithHooks(rdb); err != nil {
+panic(err)
 }
 
 // Enable metrics instrumentation.
 if err := goredisotel.InstrumentMetrics(rdb); err != nil {
-    panic(err)
+panic(err)
+}
+
+// Enable pool metrics instrumentation.
+if err := goredisotel.InstrumentPoolStatsMetrics(rdb); err != nil {
+panic(err)
 }
 ```
 

@@ -27,7 +27,7 @@ func TestNewWithTracerProvider(t *testing.T) {
 		return otel.GetTracerProvider()
 	})
 
-	_ = newTracingHook(&redis.Options{DB: 1}, WithTracerProvider(tp.TracerProvider("redis-test")))
+	_ = newClientHook(&redis.Options{DB: 1}, WithTracerProvider(tp.TracerProvider("redis-test")))
 
 	if !invoked {
 		t.Fatalf("did not call custom TraceProvider")
@@ -37,7 +37,7 @@ func TestNewWithTracerProvider(t *testing.T) {
 func TestWithDBStatement(t *testing.T) {
 	t.Parallel()
 	provider := sdktrace.NewTracerProvider()
-	hook := newTracingHook(
+	hook := newClientHook(
 		nil,
 		WithTracerProvider(provider),
 		WithDBStatement(false),
