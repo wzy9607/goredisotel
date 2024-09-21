@@ -21,17 +21,17 @@ import (
 
 rdb := rdb.NewClient(&rdb.Options{...})
 
-// Enable tracing instrumentation.
+// Enable tracing and metrics instrumentation.
 if err := goredisotel.InstrumentClientWithHooks(rdb); err != nil {
 panic(err)
 }
 
-// Enable metrics instrumentation.
-if err := goredisotel.InstrumentMetrics(rdb); err != nil {
+// Enable tracing instrumentation only.
+if err := goredisotel.InstrumentClientWithHooks(rdb, goredisotel.DisableMetrics()); err != nil {
 panic(err)
 }
 
-// Enable pool metrics instrumentation.
+// Enable pool statistics metrics instrumentation.
 if err := goredisotel.InstrumentPoolStatsMetrics(rdb); err != nil {
 panic(err)
 }

@@ -23,20 +23,17 @@ type config struct {
 
 	// Metrics options.
 
+	metricsEnabled bool
+
 	mp    metric.MeterProvider
 	meter metric.Meter
 
 	poolName string
 }
 
-type baseOption interface {
-	apply(conf *config)
-}
-
+// Option configures the instrumentation.
 type Option interface {
-	baseOption
-	tracing()
-	metrics()
+	apply(conf *config)
 }
 
 type option func(conf *config)
@@ -45,11 +42,7 @@ func (fn option) apply(conf *config) {
 	fn(conf)
 }
 
-func (fn option) tracing() {}
-
-func (fn option) metrics() {}
-
-func newConfig(opts ...baseOption) *config {
+func newConfig(opts ...Option) *config {
 	conf := &config{
 		attrs: []attribute.KeyValue{},
 
@@ -57,6 +50,8 @@ func newConfig(opts ...baseOption) *config {
 		tracer: nil,
 
 		dbStmtEnabled: true,
+
+		metricsEnabled: true,
 
 		mp:    otel.GetMeterProvider(),
 		meter: nil,
@@ -70,7 +65,7 @@ func newConfig(opts ...baseOption) *config {
 
 	conf.attrs = append(conf.attrs, semconv.DBSystemRedis)
 
-	if conf.meter == nil {
+	if conf.meter == nil && conf.metricsEnabled {
 		conf.meter = conf.mp.Meter(
 			instrumName,
 			metric.WithInstrumentationVersion(version),
@@ -103,62 +98,41 @@ func WithAttributes(attrs ...attribute.KeyValue) Option {
 	})
 }
 
-// ------------------------------------------------------------------------------
-
-type TracingOption interface {
-	baseOption
-	tracing()
-}
-
-type tracingOption func(conf *config)
-
-var _ TracingOption = (*tracingOption)(nil)
-
-func (fn tracingOption) apply(conf *config) {
-	fn(conf)
-}
-
-func (fn tracingOption) tracing() {}
-
 // WithTracerProvider specifies a tracer provider to use for creating a tracer.
 // If none is specified, the global provider is used.
-func WithTracerProvider(provider trace.TracerProvider) TracingOption {
-	return tracingOption(func(conf *config) {
+func WithTracerProvider(provider trace.TracerProvider) Option {
+	return option(func(conf *config) {
 		conf.tp = provider
 	})
 }
 
 // WithDBStatement tells the tracing hook not to log raw redis commands.
-func WithDBStatement(on bool) TracingOption {
-	return tracingOption(func(conf *config) {
+func WithDBStatement(on bool) Option {
+	return option(func(conf *config) {
 		conf.dbStmtEnabled = on
 	})
 }
 
-// ------------------------------------------------------------------------------
-
-type MetricsOption interface {
-	baseOption
-	metrics()
-}
-
-type metricsOption func(conf *config)
-
-var _ MetricsOption = (*metricsOption)(nil)
-
-func (fn metricsOption) apply(conf *config) {
-	fn(conf)
-}
-
-func (fn metricsOption) metrics() {}
-
 // WithMeterProvider configures a metric.Meter used to create instruments.
-func WithMeterProvider(mp metric.MeterProvider) MetricsOption {
-	return metricsOption(func(conf *config) {
+func WithMeterProvider(mp metric.MeterProvider) Option {
+	return option(func(conf *config) {
 		conf.mp = mp
 	})
 }
 
+// DisableMetrics tells the hook not to record metrics.
+func DisableMetrics() Option {
+	return option(func(conf *config) {
+		conf.metricsEnabled = false
+	})
+}
+
+// Attributes returns the common attributes.
 func (conf *config) Attributes() []attribute.KeyValue {
 	return slices.Clone(conf.attrs)
+}
+
+// MetricsEnabled returns true if metrics are enabled.
+func (conf *config) MetricsEnabled() bool {
+	return conf.metricsEnabled
 }

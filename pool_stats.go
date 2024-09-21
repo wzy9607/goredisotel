@@ -4,20 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // InstrumentPoolStatsMetrics starts reporting OpenTelemetry Metrics for the connection pool.
-func InstrumentPoolStatsMetrics(rdb redis.UniversalClient, opts ...MetricsOption) error {
-	baseOpts := make([]baseOption, len(opts))
-	for i, opt := range opts {
-		baseOpts[i] = opt
-	}
-	conf := newConfig(baseOpts...)
+func InstrumentPoolStatsMetrics(rdb redis.UniversalClient, opts ...Option) error {
+	conf := newConfig(opts...)
 
 	switch rdb := rdb.(type) {
 	case *redis.Client:
