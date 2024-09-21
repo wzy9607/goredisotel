@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"runtime"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -155,14 +153,10 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 
 func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
-		fn, file, line := funcFileLine("github.com/redis/go-redis")
-
 		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 2)
+		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
-			semconv.CodeFunction(fn),
-			semconv.CodeFilepath(file),
-			semconv.CodeLineNumber(line),
 			semconv.DBOperationName(cmd.FullName()),
 		)
 		metricAttrs = append(metricAttrs,
@@ -202,14 +196,10 @@ func (ch *clientHook) ProcessPipelineHook(
 	hook redis.ProcessPipelineHook,
 ) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
-		fn, file, line := funcFileLine("github.com/redis/go-redis")
-
 		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 3)
+		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
-			semconv.CodeFunction(fn),
-			semconv.CodeFilepath(file),
-			semconv.CodeLineNumber(line),
 			semconv.DBOperationName("pipeline"),
 			attribute.Int("db.redis.num_cmd", len(cmds)),
 		)
@@ -267,28 +257,4 @@ func (ch *clientHook) recordError(
 		span.SetStatus(codes.Error, err.Error())
 	}
 	return metricAttrs
-}
-
-func funcFileLine(pkg string) (fnName, file string, line int) {
-	const depth = 16
-	var pcs [depth]uintptr
-	n := runtime.Callers(3, pcs[:]) //nolint:mnd // ignore
-	ff := runtime.CallersFrames(pcs[:n])
-
-	for {
-		f, ok := ff.Next()
-		if !ok {
-			break
-		}
-		fnName, file, line = f.Function, f.File, f.Line
-		if !strings.Contains(fnName, pkg) {
-			break
-		}
-	}
-
-	if ind := strings.LastIndexByte(fnName, '/'); ind != -1 {
-		fnName = fnName[ind+1:]
-	}
-
-	return fnName, file, line
 }

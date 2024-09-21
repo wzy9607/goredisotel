@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -81,4 +82,34 @@ func statusAttr(err error) attribute.KeyValue {
 		return attribute.String("status", "error")
 	}
 	return attribute.String("status", "ok")
+}
+
+func funcFileLine(pkg string) []attribute.KeyValue {
+	const depth = 16
+	var pcs [depth]uintptr
+	n := runtime.Callers(3, pcs[:]) //nolint:mnd // ignore
+	ff := runtime.CallersFrames(pcs[:n])
+
+	var fnName, file string
+	var line int
+	for {
+		f, ok := ff.Next()
+		if !ok {
+			break
+		}
+		fnName, file, line = f.Function, f.File, f.Line
+		if !strings.Contains(fnName, pkg) {
+			break
+		}
+	}
+
+	if ind := strings.LastIndexByte(fnName, '/'); ind != -1 {
+		fnName = fnName[ind+1:]
+	}
+
+	return []attribute.KeyValue{
+		semconv.CodeFunction(fnName),
+		semconv.CodeFilepath(file),
+		semconv.CodeLineNumber(line),
+	}
 }
