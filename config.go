@@ -3,7 +3,6 @@ package redisotel
 import (
 	"slices"
 
-	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -74,14 +73,14 @@ func newConfig(opts ...baseOption) *config {
 	if conf.meter == nil {
 		conf.meter = conf.mp.Meter(
 			instrumName,
-			metric.WithInstrumentationVersion("semver:"+redis.Version()),
+			metric.WithInstrumentationVersion(version),
 		)
 	}
 
 	if conf.tracer == nil {
 		conf.tracer = conf.tp.Tracer(
 			instrumName,
-			trace.WithInstrumentationVersion("semver:"+redis.Version()),
+			trace.WithInstrumentationVersion(version),
 		)
 	}
 

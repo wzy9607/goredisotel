@@ -18,10 +18,6 @@ import (
 	"github.com/wzy9607/goredisotel/internal/rediscmd"
 )
 
-const (
-	instrumName = "github.com/wzy9607/goredisotel"
-)
-
 func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
 	baseOpts := make([]baseOption, len(opts))
 	for i, opt := range opts {
