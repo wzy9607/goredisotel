@@ -74,6 +74,7 @@ func newConfig(opts ...baseOption) *config {
 		conf.meter = conf.mp.Meter(
 			instrumName,
 			metric.WithInstrumentationVersion(version),
+			metric.WithSchemaURL(semconv.SchemaURL),
 		)
 	}
 
@@ -81,6 +82,7 @@ func newConfig(opts ...baseOption) *config {
 		conf.tracer = conf.tp.Tracer(
 			instrumName,
 			trace.WithInstrumentationVersion(version),
+			trace.WithSchemaURL(semconv.SchemaURL),
 		)
 	}
 

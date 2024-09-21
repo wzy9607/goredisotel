@@ -67,7 +67,7 @@ func newTracingHook(rdsOpt *redis.Options, conf *config) *tracingHook {
 
 		spanOpts: []trace.SpanStartOption{
 			trace.WithSpanKind(trace.SpanKindClient),
-			trace.WithAttributes(conf.attrs...),
+			trace.WithAttributes(conf.Attributes()...),
 		},
 	}
 }
