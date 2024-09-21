@@ -23,22 +23,28 @@ const (
 )
 
 func InstrumentTracing(rdb redis.UniversalClient, opts ...TracingOption) error {
+	baseOpts := make([]baseOption, len(opts))
+	for i, opt := range opts {
+		baseOpts[i] = opt
+	}
+	conf := newConfig(baseOpts...)
+
 	switch rdb := rdb.(type) {
 	case *redis.Client:
-		rdb.AddHook(newTracingHook(rdb.Options(), opts...))
+		rdb.AddHook(newTracingHook(rdb.Options(), conf))
 		return nil
 	case *redis.ClusterClient:
-		rdb.AddHook(newTracingHook(nil, opts...))
+		rdb.AddHook(newTracingHook(nil, conf))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newTracingHook(rdb.Options(), opts...))
+			rdb.AddHook(newTracingHook(rdb.Options(), conf))
 		})
 		return nil
 	case *redis.Ring:
-		rdb.AddHook(newTracingHook(nil, opts...))
+		rdb.AddHook(newTracingHook(nil, conf))
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newTracingHook(rdb.Options(), opts...))
+			rdb.AddHook(newTracingHook(rdb.Options(), conf))
 		})
 		return nil
 	default:
@@ -56,20 +62,7 @@ type tracingHook struct {
 
 var _ redis.Hook = (*tracingHook)(nil)
 
-func newTracingHook(rdsOpt *redis.Options, opts ...TracingOption) *tracingHook {
-	baseOpts := make([]baseOption, len(opts))
-	for i, opt := range opts {
-		baseOpts[i] = opt
-	}
-	conf := newConfig(baseOpts...)
-
-	if conf.tracer == nil {
-		conf.tracer = conf.tp.Tracer(
-			instrumName,
-			trace.WithInstrumentationVersion("semver:"+redis.Version()),
-		)
-	}
-
+func newTracingHook(rdsOpt *redis.Options, conf *config) *tracingHook {
 	operationAttrs := commonOperationAttrs(conf, rdsOpt)
 	return &tracingHook{
 		conf: conf,

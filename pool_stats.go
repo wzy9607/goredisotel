@@ -19,13 +19,6 @@ func InstrumentPoolStatsMetrics(rdb redis.UniversalClient, opts ...MetricsOption
 	}
 	conf := newConfig(baseOpts...)
 
-	if conf.meter == nil {
-		conf.meter = conf.mp.Meter(
-			instrumName,
-			metric.WithInstrumentationVersion("semver:"+redis.Version()),
-		)
-	}
-
 	switch rdb := rdb.(type) {
 	case *redis.Client:
 		if err := reportPoolStats(rdb, conf); err != nil {

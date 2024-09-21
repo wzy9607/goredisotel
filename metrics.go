@@ -25,12 +25,6 @@ func InstrumentMetrics(rdb redis.UniversalClient, opts ...MetricsOption) error {
 	}
 	conf := newConfig(baseOpts...)
 
-	if conf.meter == nil {
-		conf.meter = conf.mp.Meter(
-			instrumName,
-			metric.WithInstrumentationVersion("semver:"+redis.Version()),
-		)
-	}
 	switch rdb := rdb.(type) {
 	case *redis.Client:
 		if err := addMetricsHook(rdb, conf); err != nil {
