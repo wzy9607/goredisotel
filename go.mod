@@ -3,9 +3,8 @@ module github.com/wzy9607/goredisotel
 go 1.21
 
 require (
-	github.com/bsm/ginkgo/v2 v2.12.0
-	github.com/bsm/gomega v1.27.10
-	github.com/redis/go-redis/v9 v9.6.1
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.0
 	go.opentelemetry.io/otel v1.29.0
 	go.opentelemetry.io/otel/metric v1.29.0
 	go.opentelemetry.io/otel/sdk v1.29.0

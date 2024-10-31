@@ -16,9 +16,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/redis/go-redis/extra/rediscmd/v9"
 	"github.com/redis/go-redis/v9"
-
-	"github.com/wzy9607/goredisotel/internal/rediscmd"
 )
 
 type clientHook struct {
