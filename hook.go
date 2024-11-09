@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/redis/go-redis/extra/rediscmd/v9"
@@ -139,7 +139,7 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 
 		if ch.conf.MetricsEnabled() {
 			attrs := attribute.NewSet(
-				semconv.DBClientConnectionsPoolName(realAddr+"/"+ch.dbNamespace),
+				semconv.DBClientConnectionPoolName(realAddr+"/"+ch.dbNamespace),
 				statusAttr(err),
 			)
 
@@ -152,14 +152,15 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 
 func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
+		oprName := cmd.FullName()
 		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 2)
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
-			semconv.DBOperationName(cmd.FullName()),
+			semconv.DBOperationName(oprName),
 		)
 		metricAttrs = append(metricAttrs,
-			semconv.DBOperationName(cmd.FullName()),
+			semconv.DBOperationName(oprName),
 		)
 
 		if ch.conf.dbStmtEnabled {
@@ -171,7 +172,7 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
-		ctx, span := ch.conf.tracer.Start(ctx, cmd.FullName(), opts...)
+		ctx, span := ch.conf.tracer.Start(ctx, oprName+" "+ch.dbNamespace, opts...)
 		defer span.End()
 
 		err := hook(ctx, cmd)
@@ -195,19 +196,21 @@ func (ch *clientHook) ProcessPipelineHook(
 	hook redis.ProcessPipelineHook,
 ) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
+		summary, cmdsString := rediscmd.CmdsString(cmds)
+		oprName := "pipeline " + summary
+
 		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 3)
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
-			semconv.DBOperationName("pipeline"),
-			attribute.Int("db.redis.num_cmd", len(cmds)),
+			semconv.DBOperationName(oprName),
+			semconv.DBOperationBatchSize(len(cmds)),
 		)
 		metricAttrs = append(metricAttrs,
-			semconv.DBOperationName("pipeline"),
-			attribute.Int("db.redis.num_cmd", len(cmds)),
+			semconv.DBOperationName(oprName),
+			semconv.DBOperationBatchSize(len(cmds)),
 		)
 
-		summary, cmdsString := rediscmd.CmdsString(cmds)
 		if ch.conf.dbStmtEnabled {
 			attrs = append(attrs, semconv.DBQueryText(cmdsString))
 		}
@@ -216,7 +219,7 @@ func (ch *clientHook) ProcessPipelineHook(
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
-		ctx, span := ch.conf.tracer.Start(ctx, "redis.pipeline "+summary, opts...)
+		ctx, span := ch.conf.tracer.Start(ctx, oprName+" "+ch.dbNamespace, opts...)
 		defer span.End()
 
 		err := hook(ctx, cmds)

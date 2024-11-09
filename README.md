@@ -1,7 +1,7 @@
 # goredisotel
 
 A fork of go-redis/extra/redisotel/v9 that follows
-[Semantic Conventions v1.26](https://github.com/open-telemetry/semantic-conventions/blob/v1.26.0/docs/database/README.md).
+[Semantic Conventions v1.27](https://github.com/open-telemetry/semantic-conventions/blob/v1.27.0/docs/database/README.md).
 
 ## Installation
 

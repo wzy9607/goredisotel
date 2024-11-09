@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -45,8 +45,8 @@ func InstrumentPoolStatsMetrics(rdb redis.UniversalClient, opts ...Option) error
 // todo connPendingRequests and connWaitTime aren't reported.
 func reportPoolStats(rdb *redis.Client, conf *config) error {
 	poolAttrs := commonPoolAttrs(conf, rdb.Options())
-	idleAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionsStateIdle)...)
-	usedAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionsStateUsed)...)
+	idleAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionStateIdle)...)
+	usedAttrs := attribute.NewSet(append(poolAttrs.ToSlice(), semconv.DBClientConnectionStateUsed)...)
 
 	instruments, err := newPoolStatsInstruments(conf.meter)
 	if err != nil {
