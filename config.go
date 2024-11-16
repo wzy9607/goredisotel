@@ -49,7 +49,7 @@ func newConfig(opts ...Option) *config {
 		tp:     otel.GetTracerProvider(),
 		tracer: nil,
 
-		dbStmtEnabled: true,
+		dbStmtEnabled: false,
 
 		metricsEnabled: true,
 
