@@ -137,6 +137,7 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 			realAddr = conn.RemoteAddr().String() // for redis behind sentinel
 		}
 
+		span.SetAttributes(semconv.DBClientConnectionPoolName(realAddr + "/" + ch.dbNamespace))
 		if ch.conf.MetricsEnabled() {
 			attrs := attribute.NewSet(
 				semconv.DBClientConnectionPoolName(realAddr+"/"+ch.dbNamespace),

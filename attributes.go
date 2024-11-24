@@ -69,7 +69,7 @@ func errorKindAttr(err error) attribute.KeyValue {
 		var redisErr redis.Error
 		if errors.As(err, &redisErr) {
 			first, _, _ := strings.Cut(redisErr.Error(), " ")
-			kind = "redis:" + first
+			kind = "redis." + first
 		} else {
 			return semconv.ErrorTypeOther
 		}
