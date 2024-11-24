@@ -1,5 +1,8 @@
 # goredisotel
 
+[![ci](https://github.com/wzy9607/goredisotel/actions/workflows/pull-request.yml/badge.svg)](https://github.com/wzy9607/goredisotel/actions/workflows/pull-request.yml)
+[![codecov](https://codecov.io/gh/wzy9607/goredisotel/graph/badge.svg?token=VVMWEWOQFO)](https://codecov.io/gh/wzy9607/goredisotel)
+
 A fork of go-redis/extra/redisotel/v9 that follows
 [Semantic Conventions v1.27](https://github.com/open-telemetry/semantic-conventions/blob/v1.27.0/docs/database/README.md).
 
