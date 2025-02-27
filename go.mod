@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.7.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/metric v1.34.0
