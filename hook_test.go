@@ -179,7 +179,7 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			},
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "set 3", span.Name())
+				assert.Equal(t, "set", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
@@ -221,7 +221,7 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			wantErr: true,
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "get 3", span.Name())
+				assert.Equal(t, "get", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
@@ -259,7 +259,7 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			wantErr: true,
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "incr 3", span.Name())
+				assert.Equal(t, "incr", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Error, Description: "READONLY aaa"}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
