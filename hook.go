@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/redis/go-redis/extra/rediscmd/v9"
@@ -173,7 +173,7 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
-		ctx, span := ch.conf.tracer.Start(ctx, oprName+" "+ch.dbNamespace, opts...)
+		ctx, span := ch.conf.tracer.Start(ctx, oprName, opts...)
 		defer span.End()
 
 		err := hook(ctx, cmd)
@@ -220,7 +220,7 @@ func (ch *clientHook) ProcessPipelineHook(
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
-		ctx, span := ch.conf.tracer.Start(ctx, oprName+" "+ch.dbNamespace, opts...)
+		ctx, span := ch.conf.tracer.Start(ctx, oprName, opts...)
 		defer span.End()
 
 		err := hook(ctx, cmds)
@@ -242,7 +242,7 @@ func (ch *clientHook) ProcessPipelineHook(
 
 func (ch *clientHook) recordDialError(span trace.Span, err error) {
 	errorKind := errorKindAttr(err)
-	span.SetAttributes(errorKind)
+	span.SetAttributes(errorKind...)
 	if !errors.Is(err, redis.Nil) {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -253,8 +253,8 @@ func (ch *clientHook) recordError(
 	span trace.Span, metricAttrs []attribute.KeyValue, err error,
 ) (newMetricAttrs []attribute.KeyValue) {
 	errorKind := errorKindAttr(err)
-	span.SetAttributes(errorKind)
-	metricAttrs = append(metricAttrs, errorKind)
+	span.SetAttributes(errorKind...)
+	metricAttrs = append(metricAttrs, errorKind...)
 	if !errors.Is(err, redis.Nil) {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -83,9 +83,9 @@ func Test_clientHook_DialHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBClientConnectionPoolNameKey]
 				assert.True(t, ok)
@@ -114,9 +114,9 @@ func Test_clientHook_DialHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBClientConnectionPoolNameKey]
 				assert.True(t, ok)
@@ -179,14 +179,14 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			},
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "set 3", span.Name())
+				assert.Equal(t, "set", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)
@@ -221,14 +221,14 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			wantErr: true,
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "get 3", span.Name())
+				assert.Equal(t, "get", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)
@@ -259,14 +259,14 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 			wantErr: true,
 			checkFn: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "incr 3", span.Name())
+				assert.Equal(t, "incr", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Error, Description: "READONLY aaa"}, span.Status())
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)
