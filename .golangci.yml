@@ -76,9 +76,9 @@ linters-settings:
       - condition
       - return
     ignored-numbers:
-      - 2
-      - 10
-      - 64
+      - "2"
+      - "10"
+      - "64"
     ignored-functions:
       - strings.SplitN
   nakedret:
