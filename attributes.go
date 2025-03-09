@@ -71,9 +71,8 @@ func errorKindAttr(err error) []attribute.KeyValue {
 			first, _, _ := strings.Cut(redisErr.Error(), " ")
 			kind = "redis." + first
 			return []attribute.KeyValue{semconv.ErrorTypeKey.String(kind), semconv.DBResponseStatusCode(first)}
-		} else {
-			return []attribute.KeyValue{semconv.ErrorTypeOther}
 		}
+		return []attribute.KeyValue{semconv.ErrorTypeOther}
 	}
 	return []attribute.KeyValue{semconv.ErrorTypeKey.String(kind)}
 }
