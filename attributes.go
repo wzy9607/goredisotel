@@ -9,13 +9,13 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 
 	"github.com/redis/go-redis/v9"
 )
 
 func commonOperationAttrs(conf *config, opt *redis.Options) attribute.Set {
-	attrs := append(conf.Attributes(), semconv.DBSystemRedis)
+	attrs := append(conf.Attributes(), semconv.DBSystemNameRedis)
 	if opt != nil {
 		attrs = append(attrs, semconv.DBNamespace(strconv.Itoa(opt.DB)))
 		attrs = append(attrs, serverAttributes(opt.Addr)...)
@@ -24,7 +24,7 @@ func commonOperationAttrs(conf *config, opt *redis.Options) attribute.Set {
 }
 
 func commonPoolAttrs(conf *config, opt *redis.Options) attribute.Set {
-	attrs := append(conf.Attributes(), semconv.DBSystemRedis)
+	attrs := append(conf.Attributes(), semconv.DBSystemNameRedis)
 	if opt != nil {
 		// https://opentelemetry.io/docs/specs/semconv/attributes-registry/db/#general-database-attributes
 		poolName := conf.poolName
@@ -54,7 +54,7 @@ func serverAttributes(addr string) []attribute.KeyValue {
 	return []attribute.KeyValue{semconv.ServerAddress(host), semconv.ServerPort(port)}
 }
 
-func errorKindAttr(err error) attribute.KeyValue {
+func errorKindAttr(err error) []attribute.KeyValue {
 	var kind string
 	switch {
 	case errors.Is(err, redis.Nil):
@@ -70,11 +70,12 @@ func errorKindAttr(err error) attribute.KeyValue {
 		if errors.As(err, &redisErr) {
 			first, _, _ := strings.Cut(redisErr.Error(), " ")
 			kind = "redis." + first
+			return []attribute.KeyValue{semconv.ErrorTypeKey.String(kind), semconv.DBResponseStatusCode(first)}
 		} else {
-			return semconv.ErrorTypeOther
+			return []attribute.KeyValue{semconv.ErrorTypeOther}
 		}
 	}
-	return semconv.ErrorTypeKey.String(kind)
+	return []attribute.KeyValue{semconv.ErrorTypeKey.String(kind)}
 }
 
 func statusAttr(err error) attribute.KeyValue {
@@ -108,7 +109,7 @@ func funcFileLine(pkg string) []attribute.KeyValue {
 	}
 
 	return []attribute.KeyValue{
-		semconv.CodeFunction(fnName),
+		semconv.CodeFunctionName(fnName),
 		semconv.CodeFilepath(file),
 		semconv.CodeLineNumber(line),
 	}

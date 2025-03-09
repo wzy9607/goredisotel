@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -83,9 +83,9 @@ func Test_clientHook_DialHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBClientConnectionPoolNameKey]
 				assert.True(t, ok)
@@ -114,9 +114,9 @@ func Test_clientHook_DialHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBClientConnectionPoolNameKey]
 				assert.True(t, ok)
@@ -184,9 +184,9 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)
@@ -226,9 +226,9 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)
@@ -264,9 +264,9 @@ func Test_clientHook_ProcessHook(t *testing.T) {
 				attrs := attrMap(span.Attributes())
 				t.Logf("attrs: %v", attrs)
 
-				kv, ok := attrs[semconv.DBSystemKey]
+				kv, ok := attrs[semconv.DBSystemNameKey]
 				assert.True(t, ok)
-				assert.Equal(t, semconv.DBSystemRedis, kv)
+				assert.Equal(t, semconv.DBSystemNameRedis, kv)
 
 				kv, ok = attrs[semconv.DBNamespaceKey]
 				assert.True(t, ok)

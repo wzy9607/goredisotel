@@ -6,7 +6,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -63,7 +63,7 @@ func newConfig(opts ...Option) *config {
 		opt.apply(conf)
 	}
 
-	conf.attrs = append(conf.attrs, semconv.DBSystemRedis)
+	conf.attrs = append(conf.attrs, semconv.DBSystemNameRedis)
 
 	if conf.meter == nil && conf.metricsEnabled {
 		conf.meter = conf.mp.Meter(

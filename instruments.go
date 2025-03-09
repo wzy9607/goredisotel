@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 )
 
 // db.client.connection.create_time and db.client.connection.use_time are recorded using hooks.
