@@ -6,6 +6,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/noop"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -69,21 +70,20 @@ func newConfig(opts ...Option) *config {
 
 	conf.attrs = append(conf.attrs, semconv.DBSystemNameRedis)
 
-	if conf.meter == nil && conf.metricsEnabled {
-		conf.meter = conf.mp.Meter(
-			instrumName,
-			metric.WithInstrumentationVersion(version),
-			metric.WithSchemaURL(semconv.SchemaURL),
-		)
+	if !conf.metricsEnabled { // use noop to disable metrics recording.
+		conf.mp = noop.NewMeterProvider()
 	}
+	conf.meter = conf.mp.Meter(
+		instrumName,
+		metric.WithInstrumentationVersion(version),
+		metric.WithSchemaURL(semconv.SchemaURL),
+	)
 
-	if conf.tracer == nil {
-		conf.tracer = conf.tp.Tracer(
-			instrumName,
-			trace.WithInstrumentationVersion(version),
-			trace.WithSchemaURL(semconv.SchemaURL),
-		)
-	}
+	conf.tracer = conf.tp.Tracer(
+		instrumName,
+		trace.WithInstrumentationVersion(version),
+		trace.WithSchemaURL(semconv.SchemaURL),
+	)
 
 	return conf
 }
