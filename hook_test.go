@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,6 +17,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type fakeConn struct {
@@ -300,7 +301,7 @@ func Test_clientHook_DialHook(t *testing.T) {
 	}
 }
 
-func Test_clientHook_ProcessHook(t *testing.T) {
+func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx //table driven tests
 	t.Parallel()
 	type fields = testClientHookFields
 	type args struct {
