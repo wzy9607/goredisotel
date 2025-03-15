@@ -21,8 +21,10 @@ type poolStatsInstruments struct {
 
 type hookInstruments struct {
 	oprDuration metric.Float64Histogram
+	oprCnt      metric.Int64Counter
 
 	createTime metric.Float64Histogram
+	createCnt  metric.Int64Counter
 	useTime    metric.Float64Histogram
 }
 
@@ -112,8 +114,8 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 	}, nil
 }
 
-func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
-	oprDuration, err := meter.Float64Histogram(
+func newHookInstruments(conf *config) (*hookInstruments, error) {
+	oprDuration, err := conf.meter.Float64Histogram(
 		semconv.DBClientOperationDurationName,
 		metric.WithDescription(semconv.DBClientOperationDurationDescription),
 		metric.WithUnit(semconv.DBClientOperationDurationUnit),
@@ -123,7 +125,7 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientOperationDurationName, err)
 	}
 
-	createTime, err := meter.Float64Histogram(
+	createTime, err := conf.meter.Float64Histogram(
 		semconv.DBClientConnectionCreateTimeName,
 		metric.WithDescription(semconv.DBClientConnectionCreateTimeDescription),
 		metric.WithUnit(semconv.DBClientConnectionCreateTimeUnit),
@@ -133,7 +135,7 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionCreateTimeName, err)
 	}
 
-	useTime, err := meter.Float64Histogram(
+	useTime, err := conf.meter.Float64Histogram(
 		semconv.DBClientConnectionUseTimeName,
 		metric.WithDescription(semconv.DBClientConnectionUseTimeDescription),
 		metric.WithUnit(semconv.DBClientConnectionUseTimeUnit),
@@ -143,10 +145,30 @@ func newHookInstruments(meter metric.Meter) (*hookInstruments, error) {
 		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionUseTimeName, err)
 	}
 
-	return &hookInstruments{
+	instruments := &hookInstruments{
 		oprDuration: oprDuration,
-
-		createTime: createTime,
-		useTime:    useTime,
-	}, nil
+		oprCnt:      nil,
+		createTime:  createTime,
+		createCnt:   nil,
+		useTime:     useTime,
+	}
+	if conf.counterMetricsEnabled {
+		instruments.oprCnt, err = conf.meter.Int64Counter(
+			"db.client.operation.count",
+			metric.WithDescription("Number of database client operations."),
+			metric.WithUnit("{operation}"),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create db.client.operation.count instrument: %w", err)
+		}
+		instruments.createCnt, err = conf.meter.Int64Counter(
+			"db.client.connection.create_count",
+			metric.WithDescription("Number of database client connections created."),
+			metric.WithUnit("{connection}"),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create db.client.connection.create_count instrument: %w", err)
+		}
+	}
+	return instruments, nil
 }
