@@ -179,21 +179,21 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		err := hook(ctx, cmd)
 
 		dur := time.Since(start)
-		metricAttrs := make([]attribute.KeyValue, 0, 2)
+		metricAttrs := make([]attribute.KeyValue, 0, 3) //nolint:mnd // ignore
 		if err != nil {
 			metricAttrs = ch.recordError(span, metricAttrs, err)
 		}
 
 		if ch.conf.metricsEnabled {
+			metricAttrs = append(metricAttrs, semconv.DBOperationName(oprName))
+			metricAttrsSet := attribute.NewSet(metricAttrs...)
 			ch.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.operationAttrSet),
-				metric.WithAttributes(semconv.DBOperationName(oprName)),
-				metric.WithAttributes(metricAttrs...))
+				metric.WithAttributeSet(metricAttrsSet))
 			ch.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.poolAttrSet),
 				metric.WithAttributes(statusAttr(err)))
 			if ch.instruments.oprCnt != nil {
 				ch.instruments.oprCnt.Add(ctx, 1, metric.WithAttributeSet(ch.operationAttrSet),
-					metric.WithAttributes(semconv.DBOperationName(oprName)),
-					metric.WithAttributes(metricAttrs...))
+					metric.WithAttributeSet(metricAttrsSet))
 			}
 		}
 		return err
@@ -232,16 +232,18 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		}
 
 		if ch.conf.metricsEnabled {
+			metricAttrsSet := attribute.NewSet(metricAttrs...)
 			ch.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.operationAttrSet),
-				metric.WithAttributes(semconv.DBOperationName(oprName), semconv.DBOperationBatchSize(len(cmds))),
-				metric.WithAttributes(metricAttrs...))
+				metric.WithAttributeSet(metricAttrsSet),
+				metric.WithAttributeSet(attribute.NewSet(semconv.DBOperationName(oprName),
+					semconv.DBOperationBatchSize(len(cmds)))))
 			ch.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.poolAttrSet),
 				metric.WithAttributes(statusAttr(err)))
 			if ch.instruments.oprCnt != nil {
 				for _, cmd := range cmds {
 					ch.instruments.oprCnt.Add(ctx, 1, metric.WithAttributeSet(ch.operationAttrSet),
-						metric.WithAttributes(semconv.DBOperationName("pipeline:"+cmd.FullName())),
-						metric.WithAttributes(metricAttrs...))
+						metric.WithAttributeSet(metricAttrsSet),
+						metric.WithAttributeSet(attribute.NewSet(semconv.DBOperationName("pipeline:"+cmd.FullName()))))
 				}
 			}
 		}
