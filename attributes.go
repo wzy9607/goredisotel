@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 
@@ -42,12 +43,14 @@ func commonPoolAttrs(conf *config, opt *redis.Options) attribute.Set {
 func serverAttributes(addr string) []attribute.KeyValue {
 	host, portString, err := net.SplitHostPort(addr)
 	if err != nil {
-		return []attribute.KeyValue{semconv.ServerAddress(host)}
+		otel.Handle(err)
+		return []attribute.KeyValue{semconv.ServerAddress(addr)}
 	}
 
 	// Parse the port string to an integer
 	port, err := strconv.Atoi(portString)
 	if err != nil {
+		otel.Handle(err)
 		return []attribute.KeyValue{semconv.ServerAddress(host)}
 	}
 
