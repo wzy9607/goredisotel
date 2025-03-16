@@ -3,10 +3,11 @@ package redisotel
 import (
 	"testing"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+
+	"github.com/redis/go-redis/v9"
 )
 
 func Test_commonOperationAttrs(t *testing.T) {
@@ -59,6 +60,7 @@ func Test_commonOperationAttrs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equalf(t, tt.want, commonOperationAttrs(tt.args.conf, tt.args.opt), "commonOperationAttrs(%v, %v)",
 				tt.args.conf, tt.args.opt)
 		})
