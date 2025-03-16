@@ -56,6 +56,23 @@ func Test_commonOperationAttrs(t *testing.T) {
 				semconv.DBNamespace("2"),
 				semconv.ServerAddress("FailoverClient"),
 			),
+		}, {
+			name: "cannot parse port",
+			args: args{
+				conf: &config{
+					attrs: []attribute.KeyValue{attribute.Key("foo").String("bar")},
+				},
+				opt: &redis.Options{
+					Addr: "10.1.1.1:a",
+					DB:   2,
+				},
+			},
+			want: attribute.NewSet(
+				attribute.Key("foo").String("bar"),
+				semconv.DBSystemNameRedis,
+				semconv.DBNamespace("2"),
+				semconv.ServerAddress("10.1.1.1"),
+			),
 		},
 	}
 	for _, tt := range tests {
