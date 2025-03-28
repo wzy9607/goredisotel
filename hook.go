@@ -161,7 +161,7 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 			semconv.DBOperationName(oprName),
 		)
 
-		if ch.conf.dbStmtEnabled {
+		if ch.conf.dbQueryTextEnabled {
 			cmdString := rediscmd.CmdString(cmd)
 			attrs = append(attrs, semconv.DBQueryText(cmdString))
 		}
@@ -204,7 +204,7 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 			semconv.DBOperationBatchSize(len(cmds)),
 		)
 
-		if ch.conf.dbStmtEnabled {
+		if ch.conf.dbQueryTextEnabled {
 			attrs = append(attrs, semconv.DBQueryText(cmdsString))
 		}
 

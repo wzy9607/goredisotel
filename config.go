@@ -20,7 +20,7 @@ type config struct {
 	tp     trace.TracerProvider
 	tracer trace.Tracer
 
-	dbStmtEnabled bool
+	dbQueryTextEnabled bool
 
 	// Metrics options.
 
@@ -50,7 +50,7 @@ func newConfig(opts ...Option) *config {
 		tp:     otel.GetTracerProvider(),
 		tracer: nil,
 
-		dbStmtEnabled: false,
+		dbQueryTextEnabled: false,
 
 		metricsEnabled: true,
 
@@ -106,10 +106,10 @@ func WithTracerProvider(provider trace.TracerProvider) Option {
 	})
 }
 
-// WithDBStatement tells the tracing hook not to log raw redis commands.
-func WithDBStatement(on bool) Option {
+// EnableDBQueryText tells the tracing hook to log raw redis commands.
+func EnableDBQueryText() Option {
 	return option(func(conf *config) {
-		conf.dbStmtEnabled = on
+		conf.dbQueryTextEnabled = true
 	})
 }
 
