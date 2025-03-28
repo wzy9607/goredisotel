@@ -446,6 +446,37 @@ func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx //table drive
 					attribute.String("status", "ok"),
 				})
 			},
+		}, {
+			name: "DisableMetrics option",
+			fields: fields{
+				rdsOpt: &redis.Options{Addr: "10.1.1.1:6379", DB: 3},
+				opts:   []Option{DisableMetrics()},
+			},
+			args: args{
+				hook: func(ctx context.Context, cmd redis.Cmder) error { return nil },
+				cmd:  redis.NewCmd(context.Background(), "set", "key", "value"),
+			},
+			checkSpan: func(t *testing.T, span sdktrace.ReadOnlySpan) {
+				t.Helper()
+				assert.Equal(t, "set", span.Name())
+				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
+				t.Logf("attrs: %v", span.Attributes())
+
+				wantAttrs := []attribute.KeyValue{
+					semconv.DBSystemNameRedis,
+					semconv.DBNamespace("3"),
+					semconv.DBOperationName("set"),
+					semconv.ServerAddress("10.1.1.1"),
+					semconv.ServerPort(6379),
+				}
+				assert.Subset(t, span.Attributes(), wantAttrs)
+
+				wantNotExistAttrs := []attribute.Key{semconv.DBResponseStatusCodeKey, semconv.DBQueryTextKey}
+				attrs := attrMap(span.Attributes())
+				for _, key := range wantNotExistAttrs {
+					assert.NotContains(t, attrs, key)
+				}
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -468,6 +499,10 @@ func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx //table drive
 
 			rm := metricdata.ResourceMetrics{}
 			require.NoError(t, mr.Collect(context.Background(), &rm))
+			if tt.checkMetrics == nil { // DisableMetrics
+				require.Empty(t, rm.ScopeMetrics)
+				return
+			}
 			require.Len(t, rm.ScopeMetrics, 1)
 			tt.checkMetrics(t, rm.ScopeMetrics[0])
 		})
