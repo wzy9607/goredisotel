@@ -21,10 +21,8 @@ type poolStatsInstruments struct {
 
 type hookInstruments struct {
 	oprDuration metric.Float64Histogram
-	oprCnt      metric.Int64Counter
 
 	createTime metric.Float64Histogram
-	createCnt  metric.Int64Counter
 	useTime    metric.Float64Histogram
 }
 
@@ -147,28 +145,8 @@ func newHookInstruments(conf *config) (*hookInstruments, error) {
 
 	instruments := &hookInstruments{
 		oprDuration: oprDuration,
-		oprCnt:      nil,
 		createTime:  createTime,
-		createCnt:   nil,
 		useTime:     useTime,
-	}
-	if conf.counterMetricsEnabled {
-		instruments.oprCnt, err = conf.meter.Int64Counter(
-			"db.client.operation.count",
-			metric.WithDescription("Number of database client operations."),
-			metric.WithUnit("{operation}"),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create db.client.operation.count instrument: %w", err)
-		}
-		instruments.createCnt, err = conf.meter.Int64Counter(
-			"db.client.connection.create_count",
-			metric.WithDescription("Number of database client connections created."),
-			metric.WithUnit("{connection}"),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create db.client.connection.create_count instrument: %w", err)
-		}
 	}
 	return instruments, nil
 }
