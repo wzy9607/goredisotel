@@ -29,8 +29,6 @@ type config struct {
 	mp    metric.MeterProvider
 	meter metric.Meter
 
-	counterMetricsEnabled bool
-
 	poolName string
 }
 
@@ -58,8 +56,6 @@ func newConfig(opts ...Option) *config {
 
 		mp:    otel.GetMeterProvider(),
 		meter: nil,
-
-		counterMetricsEnabled: false,
 
 		poolName: "",
 	}
@@ -128,14 +124,6 @@ func WithMeterProvider(mp metric.MeterProvider) Option {
 func DisableMetrics() Option {
 	return option(func(conf *config) {
 		conf.metricsEnabled = false
-	})
-}
-
-// WithCounterMetrics tells the hook to record non-standard counter metrics
-// "db.client.connection.create_count", "db.client.operation.count".
-func WithCounterMetrics() Option {
-	return option(func(conf *config) {
-		conf.counterMetricsEnabled = true
 	})
 }
 

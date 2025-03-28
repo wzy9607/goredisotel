@@ -80,20 +80,6 @@ func assertOprDuration(t *testing.T, metrics metricdata.Metrics, wantAttrs []att
 		metricdatatest.IgnoreValue())
 }
 
-func assertOprCnt(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
-	t.Helper()
-	metricdatatest.AssertEqual(t, metricdata.Metrics{
-		Name:        "db.client.operation.count",
-		Description: "Number of database client operations.",
-		Unit:        "{operation}",
-		Data: metricdata.Sum[int64]{
-			DataPoints: []metricdata.DataPoint[int64]{
-				{Attributes: attribute.NewSet(wantAttrs...), Value: 1},
-			}, Temporality: metricdata.CumulativeTemporality, IsMonotonic: true,
-		},
-	}, metrics, metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreExemplars())
-}
-
 func assertCreateTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
 	t.Helper()
 	metricdatatest.AssertEqual(t, metricdata.Metrics{
@@ -107,20 +93,6 @@ func assertCreateTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attr
 		},
 	}, metrics, metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreExemplars(),
 		metricdatatest.IgnoreValue())
-}
-
-func assertCreateCnt(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
-	t.Helper()
-	metricdatatest.AssertEqual(t, metricdata.Metrics{
-		Name:        "db.client.connection.create_count",
-		Description: "Number of database client connections created.",
-		Unit:        "{connection}",
-		Data: metricdata.Sum[int64]{
-			DataPoints: []metricdata.DataPoint[int64]{
-				{Attributes: attribute.NewSet(wantAttrs...), Value: 1},
-			}, Temporality: metricdata.CumulativeTemporality, IsMonotonic: true,
-		},
-	}, metrics, metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreExemplars())
 }
 
 func assertUseTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
@@ -228,49 +200,6 @@ func Test_clientHook_DialHook(t *testing.T) {
 					semconv.DBSystemNameRedis,
 					semconv.DBClientConnectionPoolName("FailoverClient/3"),
 					attribute.String("status", "error"),
-				})
-			},
-		}, {
-			name: "enable WithCounterMetrics option",
-			fields: fields{
-				rdsOpt: &redis.Options{
-					DB: 3,
-				},
-				opts: []Option{WithCounterMetrics()},
-			},
-			args: args{
-				hook: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return fakeConn{remoteAddr: net.IPAddr{IP: net.ParseIP("10.1.1.1")}}, nil
-				},
-				network: "tcp",
-				addr:    "FailoverClient",
-			},
-			checkSpan: func(t *testing.T, span sdktrace.ReadOnlySpan) {
-				t.Helper()
-				assert.Equal(t, "redis.dial", span.Name())
-				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
-				t.Logf("attrs: %v", span.Attributes())
-
-				wantAttrs := []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBClientConnectionPoolName("10.1.1.1/3"),
-				}
-				assert.Subset(t, span.Attributes(), wantAttrs)
-			},
-			checkMetrics: func(t *testing.T, sm metricdata.ScopeMetrics) {
-				t.Helper()
-				require.Len(t, sm.Metrics, 2)
-
-				assertCreateTime(t, sm.Metrics[0], []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBClientConnectionPoolName("10.1.1.1/3"),
-					attribute.String("status", "ok"),
-				})
-
-				assertCreateCnt(t, sm.Metrics[1], []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBClientConnectionPoolName("10.1.1.1/3"),
-					attribute.String("status", "ok"),
 				})
 			},
 		},
@@ -515,61 +444,6 @@ func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx //table drive
 					semconv.DBSystemNameRedis,
 					semconv.DBClientConnectionPoolName("10.1.1.1:6379/3"),
 					attribute.String("status", "ok"),
-				})
-			},
-		}, {
-			name: "enable WithCounterMetrics option",
-			fields: fields{
-				rdsOpt: &redis.Options{Addr: "10.1.1.1:6379", DB: 3},
-				opts:   []Option{WithCounterMetrics()},
-			},
-			args: args{
-				hook: func(ctx context.Context, cmd redis.Cmder) error { return nil },
-				cmd:  redis.NewCmd(context.Background(), "set", "key", "value"),
-			},
-			checkSpan: func(t *testing.T, span sdktrace.ReadOnlySpan) {
-				t.Helper()
-				t.Logf("attrs: %v", span.Attributes())
-
-				wantAttrs := []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBNamespace("3"),
-					semconv.DBOperationName("set"),
-					semconv.ServerAddress("10.1.1.1"),
-					semconv.ServerPort(6379),
-				}
-				assert.Subset(t, span.Attributes(), wantAttrs)
-
-				wantNotExistAttrs := []attribute.Key{semconv.DBResponseStatusCodeKey, semconv.DBQueryTextKey}
-				attrs := attrMap(span.Attributes())
-				for _, key := range wantNotExistAttrs {
-					assert.NotContains(t, attrs, key)
-				}
-			},
-			checkMetrics: func(t *testing.T, sm metricdata.ScopeMetrics) {
-				t.Helper()
-				require.Len(t, sm.Metrics, 3)
-
-				assertOprDuration(t, sm.Metrics[0], []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBNamespace("3"),
-					semconv.DBOperationName("set"),
-					semconv.ServerAddress("10.1.1.1"),
-					semconv.ServerPort(6379),
-				})
-
-				assertUseTime(t, sm.Metrics[1], []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBClientConnectionPoolName("10.1.1.1:6379/3"),
-					attribute.String("status", "ok"),
-				})
-
-				assertOprCnt(t, sm.Metrics[2], []attribute.KeyValue{
-					semconv.DBSystemNameRedis,
-					semconv.DBNamespace("3"),
-					semconv.DBOperationName("set"),
-					semconv.ServerAddress("10.1.1.1"),
-					semconv.ServerPort(6379),
 				})
 			},
 		},

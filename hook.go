@@ -146,10 +146,6 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 
 			ch.instruments.createTime.Record(ctx, dur.Seconds(),
 				metric.WithAttributeSet(ch.baseAttrSet), metric.WithAttributeSet(attrs))
-			if ch.instruments.createCnt != nil {
-				ch.instruments.createCnt.Add(ctx, 1,
-					metric.WithAttributeSet(ch.baseAttrSet), metric.WithAttributeSet(attrs))
-			}
 		}
 		return conn, err
 	}
@@ -158,7 +154,8 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		oprName := cmd.FullName()
-		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
+		attrs := make([]attribute.KeyValue, 0, 8)       //nolint:mnd // ignore
+		metricAttrs := make([]attribute.KeyValue, 0, 3) //nolint:mnd // ignore
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
@@ -179,22 +176,16 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		err := hook(ctx, cmd)
 
 		dur := time.Since(start)
-		metricAttrs := make([]attribute.KeyValue, 0, 3) //nolint:mnd // ignore
 		if err != nil {
 			metricAttrs = ch.recordError(span, metricAttrs, err)
 		}
 
 		if ch.conf.metricsEnabled {
 			metricAttrs = append(metricAttrs, semconv.DBOperationName(oprName))
-			metricAttrsSet := attribute.NewSet(metricAttrs...)
 			ch.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.operationAttrSet),
-				metric.WithAttributeSet(metricAttrsSet))
+				metric.WithAttributeSet(attribute.NewSet(metricAttrs...)))
 			ch.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.poolAttrSet),
 				metric.WithAttributes(statusAttr(err)))
-			if ch.instruments.oprCnt != nil {
-				ch.instruments.oprCnt.Add(ctx, 1, metric.WithAttributeSet(ch.operationAttrSet),
-					metric.WithAttributeSet(metricAttrsSet))
-			}
 		}
 		return err
 	}
@@ -205,7 +196,8 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		summary, cmdsString := rediscmd.CmdsString(cmds)
 		oprName := "pipeline " + summary
 
-		attrs := make([]attribute.KeyValue, 0, 8) //nolint:mnd // ignore
+		attrs := make([]attribute.KeyValue, 0, 8)       //nolint:mnd // ignore
+		metricAttrs := make([]attribute.KeyValue, 0, 4) //nolint:mnd // ignore
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
@@ -226,26 +218,18 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		err := hook(ctx, cmds)
 
 		dur := time.Since(start)
-		metricAttrs := make([]attribute.KeyValue, 0, 2)
 		if err != nil {
 			metricAttrs = ch.recordError(span, metricAttrs, err)
 		}
 
 		if ch.conf.metricsEnabled {
-			metricAttrsSet := attribute.NewSet(metricAttrs...)
+			metricAttrs = append(metricAttrs,
+				semconv.DBOperationName(oprName),
+				semconv.DBOperationBatchSize(len(cmds)))
 			ch.instruments.oprDuration.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.operationAttrSet),
-				metric.WithAttributeSet(metricAttrsSet),
-				metric.WithAttributeSet(attribute.NewSet(semconv.DBOperationName(oprName),
-					semconv.DBOperationBatchSize(len(cmds)))))
+				metric.WithAttributeSet(attribute.NewSet(metricAttrs...)))
 			ch.instruments.useTime.Record(ctx, dur.Seconds(), metric.WithAttributeSet(ch.poolAttrSet),
 				metric.WithAttributes(statusAttr(err)))
-			if ch.instruments.oprCnt != nil {
-				for _, cmd := range cmds {
-					ch.instruments.oprCnt.Add(ctx, 1, metric.WithAttributeSet(ch.operationAttrSet),
-						metric.WithAttributeSet(metricAttrsSet),
-						metric.WithAttributeSet(attribute.NewSet(semconv.DBOperationName("pipeline:"+cmd.FullName()))))
-				}
-			}
 		}
 		return err
 	}
