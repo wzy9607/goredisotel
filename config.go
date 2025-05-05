@@ -30,6 +30,7 @@ type config struct {
 	meter metric.Meter
 
 	poolName string
+	db       *int
 }
 
 // Option configures the instrumentation.
@@ -58,6 +59,7 @@ func newConfig(opts ...Option) *config {
 		meter: nil,
 
 		poolName: "",
+		db:       nil,
 	}
 
 	for _, opt := range opts {
@@ -124,6 +126,14 @@ func WithMeterProvider(mp metric.MeterProvider) Option {
 func DisableMetrics() Option {
 	return option(func(conf *config) {
 		conf.metricsEnabled = false
+	})
+}
+
+// WithDB should only be used together with redis.NewFailoverClusterClient,
+// since DB cannot be retrieved from redis.ClusterClient’s option.
+func WithDB(db int) Option {
+	return option(func(conf *config) {
+		conf.db = &db
 	})
 }
 
