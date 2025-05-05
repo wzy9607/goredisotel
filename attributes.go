@@ -18,7 +18,11 @@ import (
 func commonOperationAttrs(conf *config, opt *redis.Options) attribute.Set {
 	attrs := append(conf.Attributes(), semconv.DBSystemNameRedis)
 	if opt != nil {
-		attrs = append(attrs, semconv.DBNamespace(strconv.Itoa(opt.DB)))
+		db := opt.DB
+		if conf.db != nil {
+			db = *conf.db
+		}
+		attrs = append(attrs, semconv.DBNamespace(strconv.Itoa(db)))
 		attrs = append(attrs, serverAttributes(opt.Addr)...)
 	}
 	return attribute.NewSet(attrs...)
@@ -30,7 +34,11 @@ func commonPoolAttrs(conf *config, opt *redis.Options) attribute.Set {
 		// https://opentelemetry.io/docs/specs/semconv/attributes-registry/db/#general-database-attributes
 		poolName := conf.poolName
 		if poolName == "" {
-			poolName = opt.Addr + "/" + strconv.Itoa(opt.DB)
+			db := opt.DB
+			if conf.db != nil {
+				db = *conf.db
+			}
+			poolName = opt.Addr + "/" + strconv.Itoa(db)
 		}
 		attrs = append(attrs, semconv.DBClientConnectionPoolName(poolName))
 	}
