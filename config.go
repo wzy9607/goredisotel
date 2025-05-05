@@ -59,6 +59,7 @@ func newConfig(opts ...Option) *config {
 		meter: nil,
 
 		poolName: "",
+		db:       nil,
 	}
 
 	for _, opt := range opts {
