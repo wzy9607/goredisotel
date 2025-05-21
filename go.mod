@@ -1,6 +1,6 @@
 module github.com/wzy9607/goredisotel
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.8.0
