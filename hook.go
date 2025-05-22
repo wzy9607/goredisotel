@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/redis/go-redis/extra/rediscmd/v9"
@@ -154,8 +154,8 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		oprName := cmd.FullName()
-		attrs := make([]attribute.KeyValue, 0, 8)       //nolint:mnd // ignore
-		metricAttrs := make([]attribute.KeyValue, 0, 3) //nolint:mnd // ignore
+		attrs := make([]attribute.KeyValue, 0, 5)       //nolint:mnd // ignore
+		metricAttrs := make([]attribute.KeyValue, 0, 5) //nolint:mnd // ignore
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
@@ -196,8 +196,8 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		summary, cmdsString := rediscmd.CmdsString(cmds)
 		oprName := "pipeline " + summary
 
-		attrs := make([]attribute.KeyValue, 0, 8)       //nolint:mnd // ignore
-		metricAttrs := make([]attribute.KeyValue, 0, 4) //nolint:mnd // ignore
+		attrs := make([]attribute.KeyValue, 0, 6)       //nolint:mnd // ignore
+		metricAttrs := make([]attribute.KeyValue, 0, 6) //nolint:mnd // ignore
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),

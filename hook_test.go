@@ -16,7 +16,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
+	"go.opentelemetry.io/otel/semconv/v1.32.0/dbconv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -68,9 +69,9 @@ func attrMap(attrs []attribute.KeyValue) map[attribute.Key]attribute.KeyValue {
 func assertOprDuration(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
 	t.Helper()
 	metricdatatest.AssertEqual(t, metricdata.Metrics{
-		Name:        semconv.DBClientOperationDurationName,
-		Description: semconv.DBClientOperationDurationDescription,
-		Unit:        semconv.DBClientOperationDurationUnit,
+		Name:        dbconv.ClientOperationDuration{}.Name(),
+		Description: dbconv.ClientOperationDuration{}.Description(),
+		Unit:        dbconv.ClientOperationDuration{}.Unit(),
 		Data: metricdata.Histogram[float64]{
 			DataPoints: []metricdata.HistogramDataPoint[float64]{
 				{Attributes: attribute.NewSet(wantAttrs...)},
@@ -83,9 +84,9 @@ func assertOprDuration(t *testing.T, metrics metricdata.Metrics, wantAttrs []att
 func assertCreateTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
 	t.Helper()
 	metricdatatest.AssertEqual(t, metricdata.Metrics{
-		Name:        semconv.DBClientConnectionCreateTimeName,
-		Description: semconv.DBClientConnectionCreateTimeDescription,
-		Unit:        semconv.DBClientConnectionCreateTimeUnit,
+		Name:        dbconv.ClientConnectionCreateTime{}.Name(),
+		Description: dbconv.ClientConnectionCreateTime{}.Description(),
+		Unit:        dbconv.ClientConnectionCreateTime{}.Unit(),
 		Data: metricdata.Histogram[float64]{
 			DataPoints: []metricdata.HistogramDataPoint[float64]{
 				{Attributes: attribute.NewSet(wantAttrs...)},
@@ -98,9 +99,9 @@ func assertCreateTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attr
 func assertUseTime(t *testing.T, metrics metricdata.Metrics, wantAttrs []attribute.KeyValue) {
 	t.Helper()
 	metricdatatest.AssertEqual(t, metricdata.Metrics{
-		Name:        semconv.DBClientConnectionUseTimeName,
-		Description: semconv.DBClientConnectionUseTimeDescription,
-		Unit:        semconv.DBClientConnectionUseTimeUnit,
+		Name:        dbconv.ClientConnectionUseTime{}.Name(),
+		Description: dbconv.ClientConnectionUseTime{}.Description(),
+		Unit:        dbconv.ClientConnectionUseTime{}.Unit(),
 		Data: metricdata.Histogram[float64]{
 			DataPoints: []metricdata.HistogramDataPoint[float64]{
 				{Attributes: attribute.NewSet(wantAttrs...)},
