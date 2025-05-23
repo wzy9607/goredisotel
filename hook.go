@@ -154,8 +154,8 @@ func (ch *clientHook) DialHook(hook redis.DialHook) redis.DialHook {
 func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		oprName := cmd.FullName()
-		attrs := make([]attribute.KeyValue, 0, 5)       //nolint:mnd // ignore
-		metricAttrs := make([]attribute.KeyValue, 0, 5) //nolint:mnd // ignore
+		attrs := make([]attribute.KeyValue, 0, 6)       //nolint:mnd // ignore
+		metricAttrs := make([]attribute.KeyValue, 0, 6) //nolint:mnd // ignore
 		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
@@ -164,6 +164,10 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		if ch.conf.dbQueryTextEnabled {
 			cmdString := rediscmd.CmdString(cmd)
 			attrs = append(attrs, semconv.DBQueryText(cmdString))
+		}
+		if attr, ok := maybeStoredProcedureAttr(cmd); ok {
+			attrs = append(attrs, attr)
+			metricAttrs = append(metricAttrs, attr)
 		}
 
 		opts := ch.spanOpts
@@ -207,6 +211,8 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		if ch.conf.dbQueryTextEnabled {
 			attrs = append(attrs, semconv.DBQueryText(cmdsString))
 		}
+		// db.stored_procedure.name is not added for now,
+		// because it requires to check that all commands are the same stored procedure.
 
 		opts := ch.spanOpts
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))

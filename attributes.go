@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,22 @@ func commonPoolAttrs(conf *config, opt *redis.Options) attribute.Set {
 		attrs = append(attrs, semconv.DBClientConnectionPoolName(poolName))
 	}
 	return attribute.NewSet(attrs...)
+}
+
+func maybeStoredProcedureAttr(cmd redis.Cmder) (kv attribute.KeyValue, ok bool) {
+	if !slices.Contains([]string{"evalsha", "evalsha_rd", "fcall", "fcall_rd"}, cmd.Name()) {
+		return kv, false
+	}
+	args := cmd.Args()
+	if len(args) < 2 {
+		return kv, false
+	}
+	val, ok := args[1].(string)
+	if !ok {
+		return kv, false
+	}
+	kv = semconv.DBStoredProcedureName(val)
+	return kv, true
 }
 
 // Database span attributes semantic conventions recommended server address and port
