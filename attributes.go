@@ -10,7 +10,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -120,7 +120,7 @@ func funcFileLine(pkg string) []attribute.KeyValue {
 
 	return []attribute.KeyValue{
 		semconv.CodeFunctionName(fnName),
-		semconv.CodeFilepath(file),
+		semconv.CodeFilePath(file),
 		semconv.CodeLineNumber(line),
 	}
 }

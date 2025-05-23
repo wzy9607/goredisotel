@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	"go.opentelemetry.io/otel/semconv/v1.32.0/dbconv"
 )
 
 // db.client.connection.create_time and db.client.connection.use_time are recorded using hooks.
@@ -37,68 +37,66 @@ func SetBuckets(b []float64) {
 }
 
 func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) {
+	// We cannot use dbconv.NewClientConnectionCount etc. for poolStatsInstruments,
+	// since they aren't Observable Counter, which we need.
 	connCount, err := meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionCountName,
-		metric.WithDescription(semconv.DBClientConnectionCountDescription),
-		metric.WithUnit(semconv.DBClientConnectionCountUnit),
-	)
+		dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionCountName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Name(), err)
 	}
 
 	connIdleMax, err := meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionIdleMaxName,
-		metric.WithDescription(semconv.DBClientConnectionIdleMaxDescription),
-		metric.WithUnit(semconv.DBClientConnectionIdleMaxUnit),
-	)
+		dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionIdleMaxName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Name(), err)
 	}
 
 	connIdleMin, err := meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionIdleMinName,
-		metric.WithDescription(semconv.DBClientConnectionIdleMinDescription),
-		metric.WithUnit(semconv.DBClientConnectionIdleMinUnit),
-	)
+		dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionIdleMinName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Name(), err)
 	}
 
 	connMax, err := meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionMaxName,
-		metric.WithDescription(semconv.DBClientConnectionMaxDescription),
-		metric.WithUnit(semconv.DBClientConnectionMaxUnit),
-	)
+		dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionMaxName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Name(), err)
 	}
 
 	connPendingRequests, err := meter.Int64ObservableUpDownCounter(
-		semconv.DBClientConnectionPendingRequestsName,
-		metric.WithDescription(semconv.DBClientConnectionPendingRequestsDescription),
-		metric.WithUnit(semconv.DBClientConnectionPendingRequestsUnit),
-	)
+		dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionPendingRequestsName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Name(), err)
 	}
 
 	connTimeouts, err := meter.Int64ObservableCounter(
-		semconv.DBClientConnectionTimeoutsName,
-		metric.WithDescription(semconv.DBClientConnectionTimeoutsDescription),
-		metric.WithUnit(semconv.DBClientConnectionTimeoutsUnit),
-	)
+		dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Name(),
+		metric.WithDescription(dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Description()),
+		metric.WithUnit(dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Unit()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionTimeoutsName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Name(), err)
 	}
 
-	connWaitTime, err := meter.Float64Histogram(
-		semconv.DBClientConnectionWaitTimeName,
-		metric.WithDescription(semconv.DBClientConnectionWaitTimeDescription),
-		metric.WithUnit(semconv.DBClientConnectionWaitTimeUnit),
-		metric.WithExplicitBucketBoundaries(buckets...),
-	)
+	connWaitTime, err := dbconv.NewClientConnectionWaitTime(meter, metric.WithExplicitBucketBoundaries(buckets...))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionWaitTimeName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionWaitTime{Float64Histogram: nil}.Name(), err)
 	}
 
 	return &poolStatsInstruments{
@@ -108,45 +106,33 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 		connMax:             connMax,
 		connPendingRequests: connPendingRequests,
 		connTimeouts:        connTimeouts,
-		connWaitTime:        connWaitTime,
+		connWaitTime:        connWaitTime.Inst(),
 	}, nil
 }
 
 func newHookInstruments(conf *config) (*hookInstruments, error) {
-	oprDuration, err := conf.meter.Float64Histogram(
-		semconv.DBClientOperationDurationName,
-		metric.WithDescription(semconv.DBClientOperationDurationDescription),
-		metric.WithUnit(semconv.DBClientOperationDurationUnit),
-		metric.WithExplicitBucketBoundaries(buckets...),
-	)
+	oprDuration, err := dbconv.NewClientOperationDuration(conf.meter, metric.WithExplicitBucketBoundaries(buckets...))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientOperationDurationName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientOperationDuration{Float64Histogram: nil}.Name(), err)
 	}
 
-	createTime, err := conf.meter.Float64Histogram(
-		semconv.DBClientConnectionCreateTimeName,
-		metric.WithDescription(semconv.DBClientConnectionCreateTimeDescription),
-		metric.WithUnit(semconv.DBClientConnectionCreateTimeUnit),
-		metric.WithExplicitBucketBoundaries(buckets...),
-	)
+	createTime, err := dbconv.NewClientConnectionCreateTime(conf.meter, metric.WithExplicitBucketBoundaries(buckets...))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionCreateTimeName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionCreateTime{Float64Histogram: nil}.Name(), err)
 	}
 
-	useTime, err := conf.meter.Float64Histogram(
-		semconv.DBClientConnectionUseTimeName,
-		metric.WithDescription(semconv.DBClientConnectionUseTimeDescription),
-		metric.WithUnit(semconv.DBClientConnectionUseTimeUnit),
-		metric.WithExplicitBucketBoundaries(buckets...),
-	)
+	useTime, err := dbconv.NewClientConnectionUseTime(conf.meter, metric.WithExplicitBucketBoundaries(buckets...))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create %s instrument: %w", semconv.DBClientConnectionUseTimeName, err)
+		return nil, fmt.Errorf("failed to create %s instrument: %w",
+			dbconv.ClientConnectionUseTime{Float64Histogram: nil}.Name(), err)
 	}
 
 	instruments := &hookInstruments{
-		oprDuration: oprDuration,
-		createTime:  createTime,
-		useTime:     useTime,
+		oprDuration: oprDuration.Inst(),
+		createTime:  createTime.Inst(),
+		useTime:     useTime.Inst(),
 	}
 	return instruments, nil
 }
