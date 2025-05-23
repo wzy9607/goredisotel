@@ -194,7 +194,7 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
 		summary, cmdsString := rediscmd.CmdsString(cmds)
-		oprName := "pipeline " + summary
+		oprName := "PIPELINE " + summary
 
 		attrs := make([]attribute.KeyValue, 0, 6)       //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 6) //nolint:mnd // ignore

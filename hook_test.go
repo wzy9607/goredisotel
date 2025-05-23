@@ -590,14 +590,14 @@ func Test_clientHook_ProcessPipelineHook(t *testing.T) {
 			},
 			checkSpan: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "pipeline set get", span.Name())
+				assert.Equal(t, "PIPELINE set get", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				t.Logf("attrs: %v", span.Attributes())
 
 				wantAttrs := []attribute.KeyValue{
 					semconv.DBSystemNameRedis,
 					semconv.DBNamespace("3"),
-					semconv.DBOperationName("pipeline set get"),
+					semconv.DBOperationName("PIPELINE set get"),
 					semconv.ServerAddress("10.1.1.1"),
 					semconv.ServerPort(6379),
 				}
@@ -616,7 +616,7 @@ func Test_clientHook_ProcessPipelineHook(t *testing.T) {
 				assertOprDuration(t, sm.Metrics[0], []attribute.KeyValue{
 					semconv.DBSystemNameRedis,
 					semconv.DBNamespace("3"),
-					semconv.DBOperationName("pipeline set get"),
+					semconv.DBOperationName("PIPELINE set get"),
 					semconv.DBOperationBatchSize(3),
 					semconv.ServerAddress("10.1.1.1"),
 					semconv.ServerPort(6379),
@@ -644,14 +644,14 @@ func Test_clientHook_ProcessPipelineHook(t *testing.T) {
 			},
 			checkSpan: func(t *testing.T, span sdktrace.ReadOnlySpan) {
 				t.Helper()
-				assert.Equal(t, "pipeline set get", span.Name())
+				assert.Equal(t, "PIPELINE set get", span.Name())
 				assert.Equal(t, sdktrace.Status{Code: codes.Unset}, span.Status())
 				t.Logf("attrs: %v", span.Attributes())
 
 				wantAttrs := []attribute.KeyValue{
 					semconv.DBSystemNameRedis,
 					semconv.DBNamespace("3"),
-					semconv.DBOperationName("pipeline set get"),
+					semconv.DBOperationName("PIPELINE set get"),
 					semconv.ServerAddress("10.1.1.1"),
 					semconv.ServerPort(6379),
 					semconv.DBQueryText("set key value\nget key1\nget key2"),
@@ -671,7 +671,7 @@ func Test_clientHook_ProcessPipelineHook(t *testing.T) {
 				assertOprDuration(t, sm.Metrics[0], []attribute.KeyValue{
 					semconv.DBSystemNameRedis,
 					semconv.DBNamespace("3"),
-					semconv.DBOperationName("pipeline set get"),
+					semconv.DBOperationName("PIPELINE set get"),
 					semconv.DBOperationBatchSize(3),
 					semconv.ServerAddress("10.1.1.1"),
 					semconv.ServerPort(6379),
