@@ -17,27 +17,32 @@ go get github.com/wzy9607/goredisotel
 Tracing is enabled by adding a hook:
 
 ```go
+package main
+
 import (
-"github.com/redis/go-redis/v9"
-"github.com/wzy9607/goredisotel"
+	redis "github.com/redis/go-redis/v9"
+	"github.com/wzy9607/goredisotel"
 )
 
-rdb := rdb.NewClient(&rdb.Options{...})
+func main() {
+	rdb := redis.NewClient(&redis.Options{...})
 
-// Enable tracing and metrics instrumentation.
-if err := goredisotel.InstrumentClientWithHooks(rdb); err != nil {
-panic(err)
+	// Enable tracing and metrics instrumentation.
+	if err := goredisotel.InstrumentClientWithHooks(rdb); err != nil {
+		panic(err)
+	}
+
+	// Enable tracing instrumentation only.
+	if err := goredisotel.InstrumentClientWithHooks(rdb, goredisotel.DisableMetrics()); err != nil {
+		panic(err)
+	}
+
+	// Enable pool statistics metrics instrumentation.
+	if err := goredisotel.InstrumentPoolStatsMetrics(rdb); err != nil {
+		panic(err)
+	}
 }
 
-// Enable tracing instrumentation only.
-if err := goredisotel.InstrumentClientWithHooks(rdb, goredisotel.DisableMetrics()); err != nil {
-panic(err)
-}
-
-// Enable pool statistics metrics instrumentation.
-if err := goredisotel.InstrumentPoolStatsMetrics(rdb); err != nil {
-panic(err)
-}
 ```
 
 See [example](./example)

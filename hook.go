@@ -211,7 +211,7 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		if ch.conf.dbQueryTextEnabled {
 			attrs = append(attrs, semconv.DBQueryText(cmdsString))
 		}
-		// db.stored_procedure.name is not added for now,
+		// todo db.stored_procedure.name is not added for now,
 		// because it requires to check that all commands are the same stored procedure.
 
 		opts := ch.spanOpts
