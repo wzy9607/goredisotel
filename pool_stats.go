@@ -3,6 +3,7 @@ package redisotel
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -70,6 +71,15 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 				metric.WithAttributeSet(poolAttrs))
 			observer.ObserveInt64(instruments.connTimeouts, int64(stats.Timeouts),
 				metric.WithAttributeSet(poolAttrs))
+			// non-standard metrics start here
+			observer.ObserveInt64(instruments.connHitCount, int64(stats.Hits),
+				metric.WithAttributeSet(poolAttrs))
+			observer.ObserveInt64(instruments.connMissCount, int64(stats.Misses),
+				metric.WithAttributeSet(poolAttrs))
+			observer.ObserveInt64(instruments.connWaitCount, int64(stats.WaitCount),
+				metric.WithAttributeSet(poolAttrs))
+			observer.ObserveFloat64(instruments.connWaitTimeTotal, time.Duration(stats.WaitDurationNs).Seconds(),
+				metric.WithAttributeSet(poolAttrs))
 			return nil
 		},
 		instruments.connCount,
@@ -77,6 +87,10 @@ func reportPoolStats(rdb *redis.Client, conf *config) error {
 		instruments.connIdleMin,
 		instruments.connMax,
 		instruments.connTimeouts,
+		instruments.connHitCount,
+		instruments.connMissCount,
+		instruments.connWaitCount,
+		instruments.connWaitTimeTotal,
 	)
 
 	return err

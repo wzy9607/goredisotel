@@ -3,25 +3,26 @@ package redisotel
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel/metric"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.32.0"
+	"go.opentelemetry.io/otel/metric/noop"
 )
 
 func Test_newPoolStatsInstruments(t *testing.T) {
 	t.Parallel()
-	mr := sdkmetric.NewManualReader()
-	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(mr))
-	meter := mp.Meter(instrumName, metric.WithInstrumentationVersion(version), metric.WithSchemaURL(semconv.SchemaURL))
+	meter := noop.NewMeterProvider().Meter("test")
 	got, err := newPoolStatsInstruments(meter)
 	require.NoError(t, err)
 	require.NotNil(t, got)
-	require.NotNil(t, got.connCount)
-	require.NotNil(t, got.connIdleMax)
-	require.NotNil(t, got.connIdleMin)
-	require.NotNil(t, got.connMax)
-	require.NotNil(t, got.connPendingRequests)
-	require.NotNil(t, got.connTimeouts)
-	require.NotNil(t, got.connWaitTime)
+	assert.NotNil(t, got.connCount)
+	assert.NotNil(t, got.connIdleMax)
+	assert.NotNil(t, got.connIdleMin)
+	assert.NotNil(t, got.connMax)
+	assert.NotNil(t, got.connPendingRequests)
+	assert.NotNil(t, got.connTimeouts)
+	assert.NotNil(t, got.connWaitTime)
+	assert.NotNil(t, got.connHitCount)
+	assert.NotNil(t, got.connMissCount)
+	assert.NotNil(t, got.connWaitCount)
+	assert.NotNil(t, got.connWaitTimeTotal)
 }
