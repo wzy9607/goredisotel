@@ -14,9 +14,14 @@ type poolStatsInstruments struct {
 	connIdleMax         metric.Int64ObservableUpDownCounter
 	connIdleMin         metric.Int64ObservableUpDownCounter
 	connMax             metric.Int64ObservableUpDownCounter
-	connPendingRequests metric.Int64ObservableUpDownCounter
+	connPendingRequests metric.Int64UpDownCounter
 	connTimeouts        metric.Int64ObservableCounter
 	connWaitTime        metric.Float64Histogram
+
+	connHitCount      metric.Int64ObservableCounter
+	connMissCount     metric.Int64ObservableCounter
+	connWaitCount     metric.Int64ObservableCounter
+	connWaitTimeTotal metric.Float64ObservableCounter
 }
 
 type hookInstruments struct {
@@ -75,10 +80,7 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 			dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Name(), err)
 	}
 
-	connPendingRequests, err := meter.Int64ObservableUpDownCounter(
-		dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Unit()))
+	connPendingRequests, err := dbconv.NewClientConnectionPendingRequests(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
 			dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Name(), err)
@@ -99,14 +101,48 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 			dbconv.ClientConnectionWaitTime{Float64Histogram: nil}.Name(), err)
 	}
 
+	// non-standard metrics start here
+	connHitCount, err := meter.Int64ObservableCounter(
+		"db.client.connection.redis.hits",
+		metric.WithDescription("The number of times free connections was found in the pool."),
+		metric.WithUnit("{hit}"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db.client.connection.redis.hits instrument: %w", err)
+	}
+	connMissCount, err := meter.Int64ObservableCounter(
+		"db.client.connection.redis.misses",
+		metric.WithDescription("The number of times free connections was NOT found in the pool."),
+		metric.WithUnit("{miss}"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db.client.connection.redis.misses instrument: %w", err)
+	}
+	connWaitCount, err := meter.Int64ObservableCounter(
+		"db.client.connection.waits",
+		metric.WithDescription("The number of times it waited to obtain open connections from the pool."),
+		metric.WithUnit("{wait}"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db.client.connection.waits instrument: %w", err)
+	}
+	connWaitTimeTotal, err := meter.Float64ObservableCounter(
+		"db.client.connection.wait_duration",
+		metric.WithDescription("The total time it took to obtain open connections from the pool."),
+		metric.WithUnit("s"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db.client.connection.wait_duration instrument: %w", err)
+	}
+
 	return &poolStatsInstruments{
 		connCount:           connCount,
 		connIdleMax:         connIdleMax,
 		connIdleMin:         connIdleMin,
 		connMax:             connMax,
-		connPendingRequests: connPendingRequests,
+		connPendingRequests: connPendingRequests.Inst(),
 		connTimeouts:        connTimeouts,
 		connWaitTime:        connWaitTime.Inst(),
+		connHitCount:        connHitCount,
+		connMissCount:       connMissCount,
+		connWaitCount:       connWaitCount,
+		connWaitTimeTotal:   connWaitTimeTotal,
 	}, nil
 }
 
