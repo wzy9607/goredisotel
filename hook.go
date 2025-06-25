@@ -170,7 +170,7 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 			metricAttrs = append(metricAttrs, attr)
 		}
 
-		opts := ch.spanOpts
+		opts := slices.Clone(ch.spanOpts)
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
@@ -214,7 +214,7 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 		// todo db.stored_procedure.name is not added for now,
 		// because it requires to check that all commands are the same stored procedure.
 
-		opts := ch.spanOpts
+		opts := slices.Clone(ch.spanOpts)
 		opts = append(opts, trace.WithAttributes(ch.operationAttrs...), trace.WithAttributes(attrs...))
 
 		start := time.Now()
