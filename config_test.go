@@ -25,6 +25,6 @@ func Test_newConfigWithTracerProvider(t *testing.T) {
 	_ = newConfig(WithTracerProvider(tp.TracerProvider("redis-test")))
 
 	if !invoked {
-		t.Fatalf("did not call custom TraceProvider")
+		t.Fatal("did not call custom TraceProvider")
 	}
 }

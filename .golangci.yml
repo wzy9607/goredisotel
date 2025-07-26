@@ -10,6 +10,7 @@ linters:
     - dupl
     - dupword
     - durationcheck
+    - embeddedstructfieldcheck
     - errchkjson
     - errname
     - errorlint
@@ -17,6 +18,7 @@ linters:
     - exhaustruct
     - forbidigo
     - forcetypeassert
+    - funcorder
     - funlen
     - gocheckcompilerdirectives
     - gochecksumtype
@@ -65,6 +67,8 @@ linters:
       package-average: 10
     dupl:
       threshold: 120
+    embeddedstructfieldcheck:
+      forbid-mutex: true
     errcheck:
       exclude-functions:
         - encoding/json.Marshal
@@ -77,6 +81,9 @@ linters:
         - switch
         - map
       default-signifies-exhaustive: true
+    funcorder:
+      constructor: true
+      struct-method: false
     funlen:
       lines: 100
       statements: 80
@@ -153,8 +160,10 @@ linters:
         - name: string-of-int
         - name: struct-tag
         - name: superfluous-else
+        - name: time-date
         - name: time-equal
         - name: time-naming
+        - name: unnecessary-format
         - name: var-naming
     staticcheck:
       checks:
@@ -163,6 +172,7 @@ linters:
     usestdlibvars:
       http-method: true
       http-status-code: true
+      time-date-month: true
       time-weekday: true
       time-month: true
       time-layout: true
