@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/wzy9607/goredisotel/graph/badge.svg?token=VVMWEWOQFO)](https://codecov.io/gh/wzy9607/goredisotel)
 
 A fork of go-redis/extra/redisotel/v9 that follows
-[Semantic Conventions v1.34](https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/database/README.md).
+[Semantic Conventions v1.37](https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/database/README.md).
 
 ## Installation
 
@@ -44,9 +44,6 @@ func main() {
 }
 
 ```
-
-See [example](./example)
-for details.
 
 ## Metric Instruments
 
