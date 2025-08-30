@@ -231,7 +231,7 @@ func Test_clientHook_DialHook(t *testing.T) {
 	}
 }
 
-func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx //table driven tests
+func Test_clientHook_ProcessHook(t *testing.T) { //nolint:maintidx,gocognit //table driven tests
 	t.Parallel()
 	type fields = testClientHookFields
 	type args struct {
