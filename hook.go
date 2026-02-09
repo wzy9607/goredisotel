@@ -156,7 +156,9 @@ func (ch *clientHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 		oprName := cmd.FullName()
 		attrs := make([]attribute.KeyValue, 0, 6)       //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 6) //nolint:mnd // ignore
-		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
+		if ch.conf.codeSourceEnabled {
+			attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
+		}
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
 		)
@@ -202,7 +204,9 @@ func (ch *clientHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.
 
 		attrs := make([]attribute.KeyValue, 0, 6)       //nolint:mnd // ignore
 		metricAttrs := make([]attribute.KeyValue, 0, 6) //nolint:mnd // ignore
-		attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
+		if ch.conf.codeSourceEnabled {
+			attrs = append(attrs, funcFileLine("github.com/redis/go-redis")...)
+		}
 		attrs = append(attrs,
 			semconv.DBOperationName(oprName),
 			semconv.DBOperationBatchSize(len(cmds)),

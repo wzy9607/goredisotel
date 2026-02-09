@@ -21,6 +21,7 @@ type config struct {
 	tracer trace.Tracer
 
 	dbQueryTextEnabled bool
+	codeSourceEnabled  bool
 
 	// Metrics options.
 
@@ -52,6 +53,7 @@ func newConfig(opts ...Option) *config {
 		tracer: nil,
 
 		dbQueryTextEnabled: false,
+		codeSourceEnabled:  true,
 
 		metricsEnabled: true,
 
@@ -112,6 +114,13 @@ func WithTracerProvider(provider trace.TracerProvider) Option {
 func EnableDBQueryText() Option {
 	return option(func(conf *config) {
 		conf.dbQueryTextEnabled = true
+	})
+}
+
+// DisableCodeSource tells the tracing hook to not log code source attributes.
+func DisableCodeSource() Option {
+	return option(func(conf *config) {
+		conf.codeSourceEnabled = false
 	})
 }
 
