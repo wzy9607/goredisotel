@@ -1,0 +1,7 @@
+[pr_reviewer]
+require_score_review = true
+require_can_be_split_review = true
+require_todo_scan = true
+
+[pr_description]
+publish_description_as_comment = true
