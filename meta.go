@@ -2,5 +2,5 @@ package redisotel
 
 const (
 	instrumName = "github.com/wzy9607/goredisotel"
-	version     = "v0.6.1"
+	version     = "v0.7.0"
 )
