@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/semconv/v1.40.0/dbconv"
+	"go.opentelemetry.io/otel/semconv/v1.41.0/dbconv"
 )
 
 // db.client.connection.create_time and db.client.connection.use_time are recorded using hooks.
@@ -42,42 +42,28 @@ func SetBuckets(b []float64) {
 }
 
 func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) {
-	// We cannot use dbconv.NewClientConnectionCount etc. for poolStatsInstruments,
-	// since they aren't Observable Counter, which we need.
-	connCount, err := meter.Int64ObservableUpDownCounter(
-		dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Unit()))
+	connCount, err := dbconv.NewClientConnectionCountObservable(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
-			dbconv.ClientConnectionCount{Int64UpDownCounter: nil}.Name(), err)
+			dbconv.ClientConnectionCountObservable{Int64ObservableUpDownCounter: nil}.Name(), err)
 	}
 
-	connIdleMax, err := meter.Int64ObservableUpDownCounter(
-		dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Unit()))
+	connIdleMax, err := dbconv.NewClientConnectionIdleMaxObservable(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
-			dbconv.ClientConnectionIdleMax{Int64UpDownCounter: nil}.Name(), err)
+			dbconv.ClientConnectionIdleMaxObservable{Int64ObservableUpDownCounter: nil}.Name(), err)
 	}
 
-	connIdleMin, err := meter.Int64ObservableUpDownCounter(
-		dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Unit()))
+	connIdleMin, err := dbconv.NewClientConnectionIdleMinObservable(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
-			dbconv.ClientConnectionIdleMin{Int64UpDownCounter: nil}.Name(), err)
+			dbconv.ClientConnectionIdleMinObservable{Int64ObservableUpDownCounter: nil}.Name(), err)
 	}
 
-	connMax, err := meter.Int64ObservableUpDownCounter(
-		dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Unit()))
+	connMax, err := dbconv.NewClientConnectionMaxObservable(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
-			dbconv.ClientConnectionMax{Int64UpDownCounter: nil}.Name(), err)
+			dbconv.ClientConnectionMaxObservable{Int64ObservableUpDownCounter: nil}.Name(), err)
 	}
 
 	connPendingRequests, err := dbconv.NewClientConnectionPendingRequests(meter)
@@ -86,13 +72,10 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 			dbconv.ClientConnectionPendingRequests{Int64UpDownCounter: nil}.Name(), err)
 	}
 
-	connTimeouts, err := meter.Int64ObservableCounter(
-		dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Name(),
-		metric.WithDescription(dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Description()),
-		metric.WithUnit(dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Unit()))
+	connTimeouts, err := dbconv.NewClientConnectionTimeoutsObservable(meter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create %s instrument: %w",
-			dbconv.ClientConnectionTimeouts{Int64Counter: nil}.Name(), err)
+			dbconv.ClientConnectionTimeoutsObservable{Int64ObservableCounter: nil}.Name(), err)
 	}
 
 	connWaitTime, err := dbconv.NewClientConnectionWaitTime(meter, metric.WithExplicitBucketBoundaries(buckets...))
@@ -132,12 +115,12 @@ func newPoolStatsInstruments(meter metric.Meter) (*poolStatsInstruments, error) 
 	}
 
 	return &poolStatsInstruments{
-		connCount:           connCount,
-		connIdleMax:         connIdleMax,
-		connIdleMin:         connIdleMin,
-		connMax:             connMax,
+		connCount:           connCount.Inst(),
+		connIdleMax:         connIdleMax.Inst(),
+		connIdleMin:         connIdleMin.Inst(),
+		connMax:             connMax.Inst(),
 		connPendingRequests: connPendingRequests.Inst(),
-		connTimeouts:        connTimeouts,
+		connTimeouts:        connTimeouts.Inst(),
 		connWaitTime:        connWaitTime.Inst(),
 		connHitCount:        connHitCount,
 		connMissCount:       connMissCount,
