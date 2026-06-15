@@ -108,6 +108,8 @@ linters:
       statements: 80
     gocognit:
       min-complexity: 20
+    goconst:
+      ignore-tests: true
     gocritic:
       disabled-checks:
         - dupImport # https://github.com/go-critic/go-critic/issues/845
