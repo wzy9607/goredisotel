@@ -19,7 +19,7 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exhaustruct
+    - exhaustruct_v5
     - exptostd
     - fatcontext
     - forbidigo
@@ -46,7 +46,6 @@ linters:
     - misspell
     - mnd
     - musttag
-    - nakedret
     - nestif
     - nilerr
     - nilnesserr
@@ -83,7 +82,7 @@ linters:
       max-complexity: 15
       package-average: 10
     dupl:
-      threshold: 120
+      threshold: 150
     embeddedstructfieldcheck:
       forbid-mutex: true
     errcheck:
@@ -96,9 +95,9 @@ linters:
     exhaustive:
       check:
         - switch
-        - map
+        - mapliteral
       default-signifies-exhaustive: true
-    exhaustruct:
+    exhaustruct_v5:
       allow-empty-returns: true
     funcorder:
       constructor: true
@@ -128,6 +127,8 @@ linters:
       settings:
         captLocal:
           paramsOnly: false
+        hugeParam:
+          sizeThreshold: 100
         unnamedResult:
           checkExported: true
     govet:
@@ -148,8 +149,6 @@ linters:
         - "64"
       ignored-functions:
         - strings.SplitN
-    nakedret:
-      max-func-lines: 50
     nolintlint:
       require-explanation: true
       require-specific: true
@@ -175,10 +174,12 @@ linters:
             - preserveScope
         - name: errorf
         - name: filename-format
+        - name: forbidden-call-in-wg-go
         - name: increment-decrement
         - name: indent-error-flow
         - name: modifies-value-receiver
         - name: optimize-operands-order
+        - name: package-naming
         - name: redundant-import-alias
         - name: string-of-int
         - name: struct-tag
@@ -187,6 +188,8 @@ linters:
         - name: time-equal
         - name: time-naming
         - name: unnecessary-format
+        - name: use-slices-sort
+        - name: useless-fallthrough
         - name: var-naming
     sloglint:
       attr-only: true
@@ -227,12 +230,11 @@ linters:
           - cyclop
           - dupl
           - exhaustive
-          - exhaustruct
+          - exhaustruct_v5
           - fatcontext
           - forcetypeassert
           - funlen
           - mnd
-          - nakedret
           - spancheck
           - varnamelen
         path: _test\.go
@@ -255,9 +257,11 @@ formatters:
     gofmt:
       simplify: false # covered by gofumpt
       rewrite-rules:
-        - pattern: interface{}
-          replacement: any
         - pattern: a[b:len(a)]
           replacement: a[b:]
+    gofumpt:
+      extra:
+        group-params: true
+        clothe-returns: true
   exclusions:
     generated: lax
