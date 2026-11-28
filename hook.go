@@ -65,6 +65,11 @@ func InstrumentClientWithHooks(rdb redis.UniversalClient, opts ...Option) error 
 		if err := addHook(rdb, nil, confMetricDisabled); err != nil {
 			return err
 		}
+		for _, shard := range rdb.GetShardClients() {
+			if err := addHook(shard, shard.Options(), conf); err != nil {
+				return err
+			}
+		}
 
 		rdb.OnNewNode(func(rdb *redis.Client) {
 			if err := addHook(rdb, rdb.Options(), conf); err != nil {
