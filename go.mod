@@ -3,7 +3,7 @@ module github.com/wzy9607/goredisotel
 go 1.26.0
 
 require (
-	github.com/redis/go-redis/extra/rediscmd/v9 v9.22.0
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.24.1
 	github.com/redis/go-redis/v9 v9.24.1
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.47.0
